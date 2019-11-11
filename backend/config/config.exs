@@ -10,8 +10,7 @@ config :backend, BackendWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "iTrVSBTt8gv09AAMEQl6jokxgr94Ve0ry7MicozHwPEwkuXbu6loZyHrrmfzTugW",
   render_errors: [view: BackendWeb.ErrorView, accepts: ~w(json)],
-  pubsub: [name: Backend.PubSub,
-           adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: Backend.PubSub, adapter: Phoenix.PubSub.PG2]
 
 # Configures Elixir's Logger
 config :logger, :console,
@@ -20,4 +19,4 @@ config :logger, :console,
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
-import_config "#{Mix.env}.exs"
+import_config "#{Mix.env()}.exs"

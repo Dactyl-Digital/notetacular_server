@@ -1,5 +1,6 @@
 use Mix.Config
 
+IO.puts("inside prod.exs")
 # For production, we often load configuration from external
 # sources, such as your system environment. For this reason,
 # you won't find the :http configuration below, but set inside
@@ -15,11 +16,23 @@ use Mix.Config
 # which you typically run after static files are built.
 config :backend, BackendWeb.Endpoint,
   load_from_system_env: true,
-  url: [host: "example.com", port: 80],
-  cache_static_manifest: "priv/static/cache_manifest.json"
+  # Should these values be kept out of version control?
+  url: [
+    host: Application.get_env(:backend, :app_hostname),
+    port: Application.get_env(:backend, :app_port)
+  ]
+
+# NOTE: Upon starting the released app. It said to remove this.
+# cache_static_manifest: "priv/static/cache_manifest.json"
 
 # Do not print debug messages in production
 config :logger, level: :info
+
+# NOTE: Copied this over from the dev.to elixir/docker deployment blog post
+#       Starting the mix release wouldn't have the app listening on the port
+#       w/out this line.
+# Which server to start per endpoint:
+config :backend, BackendWeb.Endpoint, server: true
 
 # ## SSL Support
 #
@@ -61,4 +74,4 @@ config :logger, level: :info
 
 # Finally import the config/prod.secret.exs
 # which should be versioned separately.
-import_config "prod.secret.exs"
+# import_config "prod.secret.exs"
