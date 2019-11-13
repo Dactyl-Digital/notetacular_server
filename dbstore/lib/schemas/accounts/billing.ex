@@ -6,7 +6,6 @@ defmodule Dbstore.Billing do
     field(:stripe_currency, :string)
     
     timestamps()
-    belongs_to(:users, Dbstore.User)
+    belongs_to(:users, Dbstore.User, foreign_key: :user_id)
   end
 end
-

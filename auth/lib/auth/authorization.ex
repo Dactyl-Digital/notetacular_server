@@ -1,8 +1,5 @@
 defmodule Auth.Authorization do
-  # import Plug.Conn
-  # alias Accounts
   alias Auth
-  # alias Backend.Helpers
 
   # Key for hashing the user's remember_token TODO: (This is duplicated in lib/accounts/impl.ex)
   # Take a similar approach to hash keys just as Salts for hashing a user's pw -> store them in db?
@@ -26,12 +23,12 @@ defmodule Auth.Authorization do
         {:ok, "Valid session"}
 
       false ->
-        {:error, "Invaid session"}
+        {:error, "Invalid session"}
     end
   end
 
   defp fetch_user({:ok, "Valid session"}, %{username: username, remember_token: remember_token}, fetch_user_fn) do
-    # case Accounts.retrieve_user_by_username(username) do
+    # TODO: Remove this comment , but implement this function in the Accounts context: case Accounts.retrieve_user_by_username(username) do
     case fetch_user_fn.(username) do
       user ->
         {:ok, {user, remember_token}}
@@ -40,8 +37,8 @@ defmodule Auth.Authorization do
         {:error, "Session cleared due to being unable to find user by username."}
     end
   end
-
-  defp fetch_user({:error, msg}, _params), do: {:error, msg}
+  
+  defp fetch_user({:error, msg}, _params, _fetch_user_fn), do: {:error, msg}
 
   defp auth_check({:ok, {user, remember_token}}) do
     case remember_token_matches?(user, remember_token) do

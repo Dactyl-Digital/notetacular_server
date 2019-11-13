@@ -45,11 +45,18 @@ defmodule AuthTest do
       assert  %{expiry: expiry, remember_token: remember_token, username: username} = session_data
     end
     
-    test "Auth.check_authorization/2 - if session is valid and user's remember_token matches the hashed_remember_token then {:ok, user} is returned",
+    test "check_authorization/2 - if session is valid and user's remember_token matches the hashed_remember_token then {:ok, user} is returned",
         %{session_data: session_data, hashed_remember_token: hashed_remember_token} do
       user = %{hashed_remember_token: hashed_remember_token}
       assert {:ok, returned_user} = Auth.check_authorization(session_data, fn _username -> user end)
       assert user === returned_user
+    end
+    
+    test "check_authorization/2 - if current time exceeds session_data's expiry time then message to clear session is returned.",
+        %{session_data: session_data, hashed_remember_token: hashed_remember_token} do
+      user = %{hashed_remember_token: hashed_remember_token}
+      expired_session_data = session_data |> Map.put(:expiry, Timex.now() |> DateTime.to_unix())
+      assert {:error, "Invalid session"} = Auth.check_authorization(expired_session_data, fn _username -> user end)
     end
   end
 end

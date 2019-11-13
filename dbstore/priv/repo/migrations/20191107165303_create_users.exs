@@ -1,4 +1,4 @@
-defmodule Dbstore.Repo.Migrations.CreateUser do
+defmodule Dbstore.Repo.Migrations.CreateUsers do
   use Ecto.Migration
 
   def change do

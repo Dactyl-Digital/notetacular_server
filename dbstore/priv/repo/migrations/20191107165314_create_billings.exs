@@ -1,4 +1,4 @@
-defmodule Dbstore.Repo.Migrations.CreateBilling do
+defmodule Dbstore.Repo.Migrations.CreateBillings do
   use Ecto.Migration
 
   def change do

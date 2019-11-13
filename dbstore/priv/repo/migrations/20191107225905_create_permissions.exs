@@ -1,4 +1,4 @@
-defmodule Dbstore.Repo.Migrations.CreatePermission do
+defmodule Dbstore.Repo.Migrations.CreatePermissions do
   use Ecto.Migration
 
   def change do

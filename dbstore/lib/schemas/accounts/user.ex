@@ -10,8 +10,8 @@ defmodule Dbstore.User do
     timestamps()
     has_one :credentials, Dbstore.Credential
     has_one :memberships, Dbstore.Membership
-    # has_one :billings, Dbstore.Billing
-    # many_to_many(:roles, Dbstore.Role, join_through: "user_roles")
+    has_one :billings, Dbstore.Billing
+    many_to_many(:roles, Dbstore.Role, join_through: "user_roles")
   end
   
   def changeset(user, params \\ %{}) do
