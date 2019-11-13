@@ -12,8 +12,8 @@ defmodule Dbstore.Notebook do
   
   def changeset(notebook, params \\ %{}) do
     notebook
-    |> cast(params, [:title])
-    |> validate_required([:title])
+    |> cast(params, [:title, :owner_id])
+    |> validate_required([:title, :owner_id])
     |> validate_length(:title, min: 4, max: 50)
   end
 end

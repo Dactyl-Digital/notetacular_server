@@ -10,6 +10,7 @@ defmodule Notebooks do
   defdelegate list_notebooks(owner_id), to: Notebooks.Impl
   defdelegate update_notebook_title(notebook_id), to: Notebooks.Impl
   defdelegate delete_notebook(notebook_id), to: Notebooks.Impl
+  defdelegate share_notebook_with_user(user_id, notebook_id), to: Notebooks.Impl
   
   # ****************************
   # SubCategory Resource Actions

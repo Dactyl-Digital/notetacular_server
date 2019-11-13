@@ -1,1 +1,1 @@
-alias Dbstore.{Repo, User, Credential, Membership, Billing, Role, Permission, Notebook, SubCategory, Topic, Note, NoteTimer}
+alias Dbstore.{Repo, User, Credential, Membership, Billing, Role, Permission, Notebook, SubCategory, Topic, Note, NoteTimer, NotebookUsershare}

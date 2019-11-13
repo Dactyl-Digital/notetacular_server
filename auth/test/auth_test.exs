@@ -32,7 +32,7 @@ defmodule AuthTest do
     end
     
     test "check_password/2 returns error info on failed password_hash match", %{user: user} do
-      assert assert {:error, "Username or password is incorrect."} === Auth.check_password(user, "password2")
+      assert {:error, "Username or password is incorrect."} === Auth.check_password(user, "password2")
     end
   end
   
