@@ -233,12 +233,12 @@ defmodule Notebooks.Impl do
   end
 
   def list_topics(%{topic_id_list: topic_id_list, limit: limit, offset: offset} = params) do
-    topics_query = from t in Topic, select: t.id
+    note_query = from n in Note, select: t.id
     query = 
       from(
-        s in SubCategory,
-        preload: [topics: ^topics_query],
-        where: s.id in ^topic_id_list,
+        t in Topic,
+        preload: [notes: ^notes_query],
+        where: t.id in ^topic_id_list,
         order_by: [desc: s.inserted_at],
         limit: ^limit,
         offset: ^offset,
@@ -264,18 +264,23 @@ defmodule Notebooks.Impl do
   # Note Resource Actions
   # *********************
   def create_note(params) do
-    IO.puts("params in create_note")
-    IO.inspect(params)
-
     %Note{}
     |> Note.changeset(params)
     |> Repo.insert()
   end
 
-  def list_notes(topic_id) do
-    IO.puts("topic_id in list_notes")
-    IO.inspect(topic_id)
-    Repo.all(Notes)
+  
+  def list_notes(%{note_id_list: note_id_list, limit: limit, offset: offset} = params) do
+    query = 
+      from(
+        n in Note,
+        where: n.id in ^note_id_list,
+        order_by: [desc: s.inserted_at],
+        limit: ^limit,
+        offset: ^offset,
+      )
+
+    Repo.all(query)
   end
 
   def update_note_title(note_id) do
@@ -299,9 +304,6 @@ defmodule Notebooks.Impl do
   end
 
   def delete_note(note_id) do
-    IO.puts("note_id in delete_note")
-    IO.inspect(note_id)
-
     Repo.get(Note, note_id)
     |> Repo.delete()
   end
