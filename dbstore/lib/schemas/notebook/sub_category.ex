@@ -4,16 +4,16 @@ defmodule Dbstore.SubCategory do
 
   schema "sub_categories" do
     field(:title, :string)
-    
+
     timestamps()
     belongs_to(:notebooks, Dbstore.Notebook, foreign_key: :notebook_id)
     has_many(:topics, Dbstore.Topic)
   end
-  
+
   def changeset(sub_category, params \\ %{}) do
     sub_category
-    |> cast(params, [:title])
-    |> validate_required([:title])
+    |> cast(params, [:title, :notebook_id])
+    |> validate_required([:title, :notebook_id])
     |> validate_length(:title, min: 4, max: 50)
   end
 end

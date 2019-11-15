@@ -6,13 +6,13 @@ defmodule NotebookBuilders do
       import NotebookBuilders, only: :functions
     end
   end
-  
+
   alias Notebook
-  alias Dbstore.{Repo, User, Notebook}
-    
-  # ************************
+  alias Dbstore.{Repo, User, Notebook, SubCategory, Topic, Note}
+
+  # ********************
   # User Setup Functions
-  # ************************
+  # ********************
   def create_user(i) do
     %User{}
     |> User.changeset(%{
@@ -26,9 +26,9 @@ defmodule NotebookBuilders do
       }
     })
   end
-  
-  def create_n_users(n), do: Enum.map((1..n), fn i -> create_user(i) end)
-  
+
+  def create_n_users(n), do: Enum.map(1..n, fn i -> create_user(i) end)
+
   # ************************
   # Notebook Setup Functions
   # ************************
@@ -39,6 +39,47 @@ defmodule NotebookBuilders do
       owner_id: owner_id
     })
   end
-  
-  def create_n_notebooks(n, owner_id), do: Enum.map((1..n), fn i -> create_notebook(i, owner_id) end)
+
+  def create_n_notebooks(n, owner_id),
+    do: Enum.map(1..n, fn i -> create_notebook(i, owner_id) end)
+
+  # ****************************
+  # Sub Category Setup Functions
+  # ****************************
+  def create_sub_category(i, notebook_id) do
+    %SubCategory{}
+    |> SubCategory.changeset(%{
+      title: "sub_category#{i}",
+      notebook_id: notebook_id
+    })
+  end
+
+  def create_n_sub_categories(n, notebook_id),
+    do: Enum.map(1..n, fn i -> create_sub_category(i, notebook_id) end)
+
+  def extract_sub_category_ids(list), do: Enum.map(list, fn {:ok, %SubCategory{id: id}} -> id end)
+
+  # *********************
+  # Topic Setup Functions
+  # *********************
+  def create_topic(i, sub_category_id) do
+    %Topic{}
+    |> Topic.changeset(%{
+      title: "topic#{i}",
+      sub_category_id: sub_category_id
+    })
+  end
+
+  # ********************
+  # Note Setup Functions
+  # ********************
+  def create_note(i, topic_id) do
+    %Note{}
+    |> Note.changeset(%{
+      title: "note#{i}",
+      topic_id: topic_id,
+      order: i,
+      content_text: "Random text to test search functionality."
+    })
+  end
 end
