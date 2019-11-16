@@ -33,6 +33,7 @@ defmodule Notebooks do
   # Note Resource Actions
   # *********************
   defdelegate create_note(params), to: Notebooks.Impl
+  defdelegate retrieve_note(params), to: Notebooks.Impl
   defdelegate list_notes(topic_id), to: Notebooks.Impl
   defdelegate update_note_title(note_id), to: Notebooks.Impl
   defdelegate update_note_content(params), to: Notebooks.Impl

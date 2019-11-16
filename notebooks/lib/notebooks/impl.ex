@@ -265,6 +265,18 @@ defmodule Notebooks.Impl do
     |> Repo.insert()
   end
   
+  def retrieve_note(%{requesting_user_id: requesting_user_id, note_id: note_id} = params) do
+    success_fn = (fn -> Repo.get(Note, note_id) end)
+    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(
+              :read,
+              %{
+                notebook_id: notebook_id,
+                requesting_user_id: requesting_user_id,
+                success_fn: success_fn
+              }) end)
+    check_notebook_access_authorization(params, success_fn, fail_fn)
+  end
+  
   def list_notes(%{note_id_list: note_id_list, limit: limit, offset: offset} = params) do
     query = 
       from(
@@ -283,6 +295,26 @@ defmodule Notebooks.Impl do
     IO.inspect(note_id)
   end
   
+  defp check_notebook_access_authorization(%{
+      requesting_user_id: requesting_user_id,
+      note_id: note_id
+    } = params, success_fn, fail_fn) do
+    case retrieve_notes_associated_notebook(%{note_id: note_id}) do
+      [%{notebook_id: notebook_id, owner_id: owner_id}] ->
+        verify_owner_of_resource(%{
+          requesting_user_id: requesting_user_id,
+          owner_id: owner_id,
+          success_fn: success_fn,
+          fail_fn: (fn -> fail_fn.(notebook_id) end)
+        })
+
+      nil ->
+        # TODO: Most ideal error to return?
+        # This is the case where the Notebook doesn't exist.
+        {:error, "UNAUTHORIZED_REQUEST"}
+    end
+  end
+  
   def update_note_content(
     %{requesting_user_id: requesting_user_id,
       note_id: note_id,
@@ -290,24 +322,14 @@ defmodule Notebooks.Impl do
       content_text: content_text
     } = params) do
       success_fn = (fn -> retrieve_and_update_note_content(params) end)
-      case retrieve_notes_associated_notebook(%{note_id: note_id}) do
-        [%{notebook_id: notebook_id, owner_id: owner_id}] ->
-          verify_owner_of_resource(%{
-            requesting_user_id: requesting_user_id,
-            owner_id: owner_id,
-            success_fn: success_fn,
-            fail_fn: (fn -> verify_shareduser_of_resource(%{
-                        notebook_id: notebook_id,
-                        requesting_user_id: requesting_user_id,
-                        success_fn: success_fn
-                      }) end)
-          })
-
-        nil ->
-          # TODO: Most ideal error to return?
-          # This is the case where the Notebook doesn't exist.
-          {:error, "UNAUTHORIZED_REQUEST"}
-      end
+      fail_fn = (fn notebook_id -> verify_shareduser_of_resource(
+                :write,
+                %{
+                  notebook_id: notebook_id,
+                  requesting_user_id: requesting_user_id,
+                  success_fn: success_fn
+                }) end)
+      check_notebook_access_authorization(params, success_fn, fail_fn)
   end
 
   @doc """
@@ -393,7 +415,7 @@ defmodule Notebooks.Impl do
     end
   end
   
-  defp verify_shareduser_of_resource(%{notebook_id: notebook_id, requesting_user_id: requesting_user_id, success_fn: success_fn}) do
+  defp verify_shareduser_of_resource(:write, %{notebook_id: notebook_id, requesting_user_id: requesting_user_id, success_fn: success_fn}) do
     query =
       from(ns in NotebookShareuser,
         where: ns.notebook_id == ^notebook_id and ns.user_id == ^requesting_user_id
@@ -408,6 +430,26 @@ defmodule Notebooks.Impl do
         success_fn.()
       [%NotebookShareuser{user_id: user_id, read_only: true}] = notebook_shareuser ->
         {:err, "UNAUTHORIZED_REQUEST"}
+      nil ->
+        {:err, "UNAUTHORIZED_REQUEST"}
+      _ ->
+        {:err, "Oops... Something went wrong."}
+    end
+  end
+  
+  defp verify_shareduser_of_resource(:read, %{notebook_id: notebook_id, requesting_user_id: requesting_user_id, success_fn: success_fn}) do
+    query =
+      from(ns in NotebookShareuser,
+        where: ns.notebook_id == ^notebook_id and ns.user_id == ^requesting_user_id
+      )
+    
+      IO.puts("the requesting_user_id")
+      IO.inspect(requesting_user_id)
+      IO.puts("Result of verify_shareduser_of_resource query")
+      Repo.all(query) |> IO.inspect
+    case Repo.all(query) do
+      [%NotebookShareuser{}] = notebook_shareuser ->
+        success_fn.()
       nil ->
         {:err, "UNAUTHORIZED_REQUEST"}
       _ ->

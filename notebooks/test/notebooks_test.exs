@@ -172,14 +172,21 @@ defmodule NotebooksTest do
     
     test "ensure that a read_only notebook_shareuser can read, but not edit notes in the notebook.",
          %{read_only_notebook_shareuser: read_only_notebook_shareuser, read_only_shared_note_id: read_only_shared_note_id, read_only_shared_notebook_id: read_only_shared_notebook_id} do
+          assert %Note{id: note_id} = Notebooks.retrieve_note(%{
+            requesting_user_id: read_only_notebook_shareuser.user_id,
+            note_id: read_only_shared_note_id
+          })
+          assert note_id === read_only_shared_note_id
           assert {:err, "UNAUTHORIZED_REQUEST"} = Notebooks.update_note_content(
             %{requesting_user_id: read_only_notebook_shareuser.user_id,
               note_id: read_only_shared_note_id,
               content_markdown: %{content: "this is it"},
               content_text: "this is it"
             })
-      
-      # NOTE: listing sub_cats
+    end
+    
+    # TODO: Need to test the listing stuffs.
+    # NOTE: listing sub_cats
       # shared_notebook_list = Notebooks.list_shared_notebooks(%{user_id: read_only_notebook_shareuser.user_id, limit: 10, offset: 0})
       # assert [
       #   %Notebook{id: read_only_shared_notebook_id, owner_id: owner1_id},
@@ -187,6 +194,5 @@ defmodule NotebooksTest do
           
       # assert [%SubCategory{id: sub_category_id}] = Notebooks.list_sub_categories(%{sub_category_id_list: sub_category_id_list, limit: 10, offset: 0})
       # assert sub_category_id === Enum.at(sub_category_id_list, 0)
-    end
   end
 end
