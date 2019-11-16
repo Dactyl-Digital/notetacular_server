@@ -117,13 +117,14 @@ defmodule Notebooks.Impl do
         verify_owner_of_resource(%{
           requesting_user_id: requesting_user_id,
           owner_id: owner_id,
-          success_fn: (fn -> delete_or_transfer_ownership(notebook))
+          success_fn: (fn -> delete_or_transfer_ownership(notebook) end),
+          fail_fn: (fn -> {:error, "UNAUTHORIZED_REQUEST"} end)
         })
 
       nil ->
         # TODO: Most ideal error to return?
         # This is the case where the Notebook doesn't exist.
-        {:error, "Unauthorized request"}
+        {:error, "UNAUTHORIZED_REQUEST"}
     end
   end
 
@@ -213,9 +214,6 @@ defmodule Notebooks.Impl do
   end
 
   def delete_sub_category(sub_category_id) do
-    IO.puts("sub_category_id in delete_sub_category")
-    IO.inspect(sub_category_id)
-
     Repo.get(SubCategory, sub_category_id)
     |> Repo.delete()
   end
@@ -224,22 +222,19 @@ defmodule Notebooks.Impl do
   # Topic Resource Actions
   # **********************
   def create_topic(params) do
-    IO.puts("params in create_topic")
-    IO.inspect(params)
-
     %Topic{}
     |> Topic.changeset(params)
     |> Repo.insert()
   end
 
   def list_topics(%{topic_id_list: topic_id_list, limit: limit, offset: offset} = params) do
-    note_query = from n in Note, select: t.id
+    notes_query = from n in Note, select: n.id
     query = 
       from(
         t in Topic,
         preload: [notes: ^notes_query],
         where: t.id in ^topic_id_list,
-        order_by: [desc: s.inserted_at],
+        order_by: [desc: t.inserted_at],
         limit: ^limit,
         offset: ^offset,
       )
@@ -255,7 +250,8 @@ defmodule Notebooks.Impl do
   def delete_topic(topic_id) do
     IO.puts("topic_id in delete_topic")
     IO.inspect(topic_id)
-
+    
+    # TODO: 
     Repo.get(Topic, topic_id)
     |> Repo.delete()
   end
@@ -268,14 +264,13 @@ defmodule Notebooks.Impl do
     |> Note.changeset(params)
     |> Repo.insert()
   end
-
   
   def list_notes(%{note_id_list: note_id_list, limit: limit, offset: offset} = params) do
     query = 
       from(
         n in Note,
         where: n.id in ^note_id_list,
-        order_by: [desc: s.inserted_at],
+        order_by: [desc: n.inserted_at],
         limit: ^limit,
         offset: ^offset,
       )
@@ -286,6 +281,33 @@ defmodule Notebooks.Impl do
   def update_note_title(note_id) do
     IO.puts("note_id in update_note_title")
     IO.inspect(note_id)
+  end
+  
+  def update_note_content(
+    %{requesting_user_id: requesting_user_id,
+      note_id: note_id,
+      content_markdown: content_markdown,
+      content_text: content_text
+    } = params) do
+      success_fn = (fn -> retrieve_and_update_note_content(params) end)
+      case retrieve_notes_associated_notebook(%{note_id: note_id}) do
+        [%{notebook_id: notebook_id, owner_id: owner_id}] ->
+          verify_owner_of_resource(%{
+            requesting_user_id: requesting_user_id,
+            owner_id: owner_id,
+            success_fn: success_fn,
+            fail_fn: (fn -> verify_shareduser_of_resource(%{
+                        notebook_id: notebook_id,
+                        requesting_user_id: requesting_user_id,
+                        success_fn: success_fn
+                      }) end)
+          })
+
+        nil ->
+          # TODO: Most ideal error to return?
+          # This is the case where the Notebook doesn't exist.
+          {:error, "UNAUTHORIZED_REQUEST"}
+      end
   end
 
   @doc """
@@ -307,6 +329,39 @@ defmodule Notebooks.Impl do
     Repo.get(Note, note_id)
     |> Repo.delete()
   end
+  
+  def retrieve_notes_associated_notebook(%{note_id: note_id}) do
+    query =
+      from(
+        n in "notes",
+        where: n.id == ^note_id,
+        join: t in "topics",
+        on: n.topic_id == t.id,
+        join: sc in "sub_categories",
+        on: t.sub_category_id == sc.id,
+        join: nb in "notebooks",
+        on: sc.notebook_id == nb.id,
+        select: %{notebook_id: nb.id, owner_id: nb.owner_id}
+      )
+      
+    Repo.all(query)
+  end
+  
+  defp retrieve_and_update_note_content(%{note_id: note_id, content_markdown: content_markdown, content_text: content_text} = params) do
+    # TODO: Add updated_at: DateTime.utc_now() // Need to require DateTime in this module
+    update_query = from(n in Note, where: n.id == ^note_id, update: [set: [content_markdown: ^content_markdown, content_text: ^content_text]])
+    case Repo.update_all(update_query, []) do
+      # This is the success case...
+      {1, nil} ->
+        {:ok, "Successfully updated the note!"}
+        
+      {_, nil} ->
+        {:err, "Unable to fetch note."}
+        
+      _ ->
+        {:err, "Oops, something went wrong."}
+    end
+  end
 
   # *****************************
   # Topic & Note Resource Actions
@@ -327,11 +382,36 @@ defmodule Notebooks.Impl do
     # TODO: Remove single tag from resource's JSONB array in the DB.
   end
   
-  defp verify_owner_of_resource(%{requesting_user_id: requesting_user_id, owner_id: owner_id, success_fn: success_fn}) do
+  # ****************************************************
+  # Authorization Checks to Perform Actions on Resources
+  # ****************************************************
+  defp verify_owner_of_resource(%{requesting_user_id: requesting_user_id, owner_id: owner_id, success_fn: success_fn, fail_fn: fail_fn}) do
     if requesting_user_id === owner_id do
       success_fn.()
     else
-      {:error, "UNAUTHORIZED_REQUEST"}
+      fail_fn.()
+    end
+  end
+  
+  defp verify_shareduser_of_resource(%{notebook_id: notebook_id, requesting_user_id: requesting_user_id, success_fn: success_fn}) do
+    query =
+      from(ns in NotebookShareuser,
+        where: ns.notebook_id == ^notebook_id and ns.user_id == ^requesting_user_id
+      )
+    
+      IO.puts("the requesting_user_id")
+      IO.inspect(requesting_user_id)
+      IO.puts("Result of verify_shareduser_of_resource query")
+      Repo.all(query) |> IO.inspect
+    case Repo.all(query) do
+      [%NotebookShareuser{user_id: user_id, read_only: false}] = notebook_shareuser ->
+        success_fn.()
+      [%NotebookShareuser{user_id: user_id, read_only: true}] = notebook_shareuser ->
+        {:err, "UNAUTHORIZED_REQUEST"}
+      nil ->
+        {:err, "UNAUTHORIZED_REQUEST"}
+      _ ->
+        {:err, "Oops... Something went wrong."}
     end
   end
 end

@@ -14,17 +14,22 @@ defmodule NotebookBuilders do
   # User Setup Functions
   # ********************
   def create_user(i) do
-    %User{}
-    |> User.changeset(%{
+    # %User{}
+    # |> User.changeset(%{
+    #   username: "user#{i}",
+    #   credentials: %{
+    #     email: "user#{i}@gmail.com",
+    #     password: "password#{i}"
+    #   },
+    #   memberships: %{
+    #     subscribed_until: Timex.now() |> Timex.shift(days: 30)
+    #   }
+    # })
+    [
       username: "user#{i}",
-      credentials: %{
-        email: "user#{i}@gmail.com",
-        password: "password#{i}"
-      },
-      memberships: %{
-        subscribed_until: Timex.now() |> Timex.shift(days: 30)
-      }
-    })
+      inserted_at: DateTime.utc_now(),
+      updated_at: DateTime.utc_now(),
+    ]
   end
 
   def create_n_users(n), do: Enum.map(1..n, fn i -> create_user(i) end)
@@ -33,11 +38,17 @@ defmodule NotebookBuilders do
   # Notebook Setup Functions
   # ************************
   def create_notebook(i, owner_id) do
-    %Notebook{}
-    |> Notebook.changeset(%{
+    # %Notebook{}
+    # |> Notebook.changeset(%{
+    #   title: "notebook#{i}",
+    #   owner_id: owner_id
+    # })
+    [
       title: "notebook#{i}",
-      owner_id: owner_id
-    })
+      owner_id: owner_id,
+      inserted_at: DateTime.utc_now(),
+      updated_at: DateTime.utc_now(),
+    ]
   end
 
   def create_n_notebooks(n, owner_id),

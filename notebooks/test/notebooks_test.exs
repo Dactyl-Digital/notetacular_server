@@ -6,31 +6,33 @@ defmodule NotebooksTest do
   alias Dbstore.{Repo, User, Notebook, SubCategory, Topic, Note, NotebookShareuser}
 
   defp setup_users(context) do
-    [{:ok, user1}, {:ok, user2}, {:ok, user3}] =
-      Enum.map(create_n_users(3), fn user -> Repo.insert(user) end)
-
-    context = Map.put(context, :user1_id, user1.id)
-    context = Map.put(context, :user2_id, user2.id)
-    context = Map.put(context, :user3_id, user3.id)
+    {3, [%{id: user1_id}, %{id: user2_id}, %{id: user3_id}]} = Repo.insert_all("users", create_n_users(3), returning: [:id])
+    context = Map.put(context, :user1_id, user1_id)
+    context = Map.put(context, :user2_id, user2_id)
+    context = Map.put(context, :user3_id, user3_id)
     {:ok, context}
   end
 
   defp setup_notebooks(context) do
-    [{:ok, notebook1}, {:ok, notebook2}, {:ok, private_notebook}] =
-      Enum.map(create_n_notebooks(3, context.user1_id), fn user -> Repo.insert(user) end)
+    {3, [%{id: read_only_shared_notebook_id}, %{id: write_enabled_shared_notebook_id}, %{id: private_notebook_id}]} =
+      Repo.insert_all("notebooks", create_n_notebooks(3, context.user1_id), returning: [:id])
+      {:ok, %Notebook{id: user2_notebook_id}} =
+        %Notebook{}
+        |> Notebook.changeset(%{title: "user2_notebook", owner_id: context.user2_id})
+        |> Repo.insert()
 
-    context = Map.put(context, :notebook1_id, notebook1.id)
-    context = Map.put(context, :notebook2_id, notebook2.id)
-    context = Map.put(context, :private_notebook_id, private_notebook.id)
+    context = Map.put(context, :read_only_shared_notebook_id, read_only_shared_notebook_id)
+    context = Map.put(context, :write_enabled_shared_notebook_id, write_enabled_shared_notebook_id)
+    context = Map.put(context, :private_notebook_id, private_notebook_id)
+    context = Map.put(context, :user2_notebook_id, user2_notebook_id)
     {:ok, context}
   end
 
   defp setup_sub_categories(context) do
     {:ok, %SubCategory{id: sub_cat1_id}} =
-      create_sub_category(1, context.notebook1_id) |> Repo.insert()
-
+      create_sub_category(1, context.read_only_shared_notebook_id) |> Repo.insert()
     {:ok, %SubCategory{id: sub_cat2_id}} =
-      create_sub_category(2, context.notebook2_id) |> Repo.insert()
+      create_sub_category(2, context.write_enabled_shared_notebook_id) |> Repo.insert()
 
     context = Map.put(context, :sub_cat1_id, sub_cat1_id)
     context = Map.put(context, :sub_cat2_id, sub_cat2_id)
@@ -46,10 +48,10 @@ defmodule NotebooksTest do
   end
 
   defp setup_notes(context) do
-    {:ok, %Note{id: note1_id}} = create_note(1, context.topic1_id) |> Repo.insert()
-    {:ok, %Note{id: note2_id}} = create_note(2, context.topic2_id) |> Repo.insert()
-    context = Map.put(context, :note1_id, note1_id)
-    context = Map.put(context, :note2_id, note2_id)
+    {:ok, %Note{id: read_only_shared_note_id}} = create_note(1, context.topic1_id) |> Repo.insert()
+    {:ok, %Note{id: write_enabled_shared_note_id}} = create_note(2, context.topic2_id) |> Repo.insert()
+    context = Map.put(context, :read_only_shared_note_id, read_only_shared_note_id)
+    context = Map.put(context, :write_enabled_shared_note_id, write_enabled_shared_note_id)
     {:ok, context}
   end
 
@@ -60,7 +62,7 @@ defmodule NotebooksTest do
     } =
       Notebooks.share_notebook_with_user(%{
         user_id: context.user2_id,
-        notebook_id: context.notebook1_id,
+        notebook_id: context.read_only_shared_notebook_id,
         read_only: true
       })
 
@@ -70,7 +72,7 @@ defmodule NotebooksTest do
     } =
       Notebooks.share_notebook_with_user(%{
         user_id: context.user2_id,
-        notebook_id: context.notebook2_id,
+        notebook_id: context.write_enabled_shared_notebook_id,
         read_only: false
       })
 
@@ -103,17 +105,23 @@ defmodule NotebooksTest do
   end
   
   # TODO: Add testing for this stuff
-  # describe "notebook context CRUD functions properly allow a user to" do
-    # test "list notebooks", %{
-    #   user1_id: user1_id,
-    # } do
-    #   notebook_list = Notebooks.list_notebooks(%{owner_id: user1_id, limit: 10, offset: 0})
-    #   IO.puts("notebook_list")
-    #   IO.inspect(notebook_list)
-    #   assert [%Notebook{id: id}] = notebook_list
-    # end
+  # describe "notebook context functions allow a user to CRUD resources in the database" do
+  #   test "list notebooks", %{
+  #     user1_id: user1_id,
+  #   } do
+  #     notebook_list = Notebooks.list_notebooks(%{owner_id: user1_id, limit: 10, offset: 0})
+  #     IO.puts("notebook_list")
+  #     IO.inspect(notebook_list)
+  #     assert [%Notebook{id: id}] = notebook_list
+  #   end
     
   # end
+  
+  # TODO: Notebooks.retrieve_notes_associated_notebook does retrieve the associated notebook (in order to facilitate
+          #       authorization checks for modifying resources) but need to write a test specifically for this.
+          # IO.inspect("The read_only_notebook_id")
+          # IO.inspect(read_only_shared_notebook_id)
+          # assert [%{notebook_id: read_only_shared_notebook_id}] = Notebooks.retrieve_notes_associated_notebook(%{note_id: read_only_shared_note_id})
 
   # TODO: This should be the second describe block, which handles
   #       the tests which rely on these resources having already been created.
@@ -130,16 +138,16 @@ defmodule NotebooksTest do
       :setup_notebook_shareuser
     ]
 
-    # test "create a notebook", %{user1_id: user1_id, notebook1_id: notebook1_id} do
+    # test "create a notebook", %{user1_id: user1_id, read_only_shared_notebook_id: read_only_shared_notebook_id} do
     #   assert {:ok, %Notebook{title: title, owner_id: owner_id}} =
     #            Notebooks.create_notebook(%{title: "notebook3", owner_id: user1_id})
     # end
 
     test "unshared notebooks remain private when listing the user's own notebooks", %{
       user2_id: user2_id,
+      user2_notebook_id: user2_notebook_id,
       private_notebook_id: private_notebook_id
     } do
-      {:ok, %Notebook{id: user2_notebook_id}} = create_notebook(10, user2_id) |> Repo.insert()
       notebook_list = Notebooks.list_notebooks(%{owner_id: user2_id, limit: 10, offset: 0})
       assert [%Notebook{id: id}] = notebook_list
       assert id === user2_notebook_id
@@ -148,31 +156,37 @@ defmodule NotebooksTest do
     
     test "unshared notebooks remain private when listing shared notebooks and user's own notebooks don't appear in the output", %{
       user2_id: user2_id,
+      user2_notebook_id: user2_notebook_id,
       private_notebook_id: private_notebook_id
     } do
-      {:ok, %Notebook{id: user2_notebook_id}} = create_notebook(10, user2_id) |> Repo.insert()
       shared_notebook_list = Notebooks.list_shared_notebooks(%{user_id: user2_id, limit: 10, offset: 0})
       assert [
-        %Notebook{id: notebook1_id, owner_id: owner1_id},
-        %Notebook{id: notebook2_id, owner_id: owner2_id}
+        %Notebook{id: read_only_shared_notebook_id, owner_id: owner1_id},
+        %Notebook{id: write_enabled_shared_notebook_id, owner_id: owner2_id}
       ] = shared_notebook_list
       assert owner1_id !== user2_id
       assert owner2_id !== user2_id
-      assert notebook1_id !== private_notebook_id and notebook1_id !== user2_notebook_id
-      assert notebook2_id !== private_notebook_id and notebook2_id !== user2_notebook_id
+      assert read_only_shared_notebook_id !== private_notebook_id and read_only_shared_notebook_id !== user2_notebook_id
+      assert write_enabled_shared_notebook_id !== private_notebook_id and write_enabled_shared_notebook_id !== user2_notebook_id
     end
     
     test "ensure that a read_only notebook_shareuser can read, but not edit notes in the notebook.",
-         %{read_only_notebook_shareuser: read_only_notebook_shareuser, notebook1_id: notebook1_id} do
-          IO.puts("read_only_notebook_shareuser")
-          IO.inspect(read_only_notebook_shareuser)
-      shared_notebook_list = Notebooks.list_shared_notebooks(%{user_id: read_only_notebook_shareuser.user_id, limit: 10, offset: 0})
-      assert [
-        %Notebook{id: notebook1_id, owner_id: owner1_id, sub_categories: sub_category_id_list},
-        %Notebook{id: notebook2_id, owner_id: owner2_id}
-      ] = shared_notebook_list
-      assert [%SubCategory{id: sub_category_id}] = Notebooks.list_sub_categories(%{sub_category_id_list: sub_category_id_list, limit: 10, offset: 0})
-      assert sub_category_id === Enum.at(sub_category_id_list, 0)
+         %{read_only_notebook_shareuser: read_only_notebook_shareuser, read_only_shared_note_id: read_only_shared_note_id, read_only_shared_notebook_id: read_only_shared_notebook_id} do
+          assert {:err, "UNAUTHORIZED_REQUEST"} = Notebooks.update_note_content(
+            %{requesting_user_id: read_only_notebook_shareuser.user_id,
+              note_id: read_only_shared_note_id,
+              content_markdown: %{content: "this is it"},
+              content_text: "this is it"
+            })
+      
+      # NOTE: listing sub_cats
+      # shared_notebook_list = Notebooks.list_shared_notebooks(%{user_id: read_only_notebook_shareuser.user_id, limit: 10, offset: 0})
+      # assert [
+      #   %Notebook{id: read_only_shared_notebook_id, owner_id: owner1_id},
+      #   %Notebook{id: write_enabled_shared_notebook_id, owner_id: owner2_id}
+          
+      # assert [%SubCategory{id: sub_category_id}] = Notebooks.list_sub_categories(%{sub_category_id_list: sub_category_id_list, limit: 10, offset: 0})
+      # assert sub_category_id === Enum.at(sub_category_id_list, 0)
     end
   end
 end

@@ -5,6 +5,10 @@
 
 alias Dbstore.{Repo, User, Credential, Membership, Billing, Role, Permission, Notebook, SubCategory, Topic, Note, NoteTimer}
 
+Repo.delete_all(Note)
+Repo.delete_all(Topic)
+Repo.delete_all(SubCategory)
+Repo.delete_all(Notebook)
 Repo.delete_all(Credential)
 Repo.delete_all(Membership)
 Repo.delete_all(Billing)
@@ -49,26 +53,63 @@ Repo.delete_all(Permission)
   })
   |> Repo.insert
 
-Repo.insert_all(
-  "user_roles",
-  [
-    [
-      user_id: user1.id,
-      role_id: role.id,
-      inserted_at: DateTime.utc_now(),
-      updated_at: DateTime.utc_now()
-    ]
-  ]
+# Repo.insert_all(
+#   "user_roles",
+#   [
+#     [
+#       user_id: user1.id,
+#       role_id: role.id,
+#       inserted_at: DateTime.utc_now(),
+#       updated_at: DateTime.utc_now()
+#     ]
+#   ]
+# )
+
+# Repo.insert_all(
+#   "role_permissions",
+#   [
+#     [
+#       role_id: role.id,
+#       permission_id: permission.id,
+      # inserted_at: DateTime.utc_now(),
+      # updated_at: DateTime.utc_now()
+#     ]
+#   ]
+# )
+
+{1, [%{id: notebook_id}]} = Repo.insert_all("notebooks", [[
+    title: "notebook1",
+    owner_id: user1.id,
+    inserted_at: DateTime.utc_now(),
+    updated_at: DateTime.utc_now()
+  ]],
+  returning: [:id]
 )
 
-Repo.insert_all(
-  "role_permissions",
-  [
-    [
-      role_id: role.id,
-      permission_id: permission.id,
-      inserted_at: DateTime.utc_now(),
-      updated_at: DateTime.utc_now()
-    ]
-  ]
+{1, [%{id: sub_category_id}]} = Repo.insert_all("sub_categories", [[
+    title: "sub_category1",
+    notebook_id: notebook_id,
+    inserted_at: DateTime.utc_now(),
+    updated_at: DateTime.utc_now()
+  ]],
+  returning: [:id]
+)
+
+{1, [%{id: topic_id}]} = Repo.insert_all("topics", [[
+    title: "topic1",
+    sub_category_id: sub_category_id,
+    inserted_at: DateTime.utc_now(),
+    updated_at: DateTime.utc_now()
+  ]],
+  returning: [:id]
+)
+
+{1, [%{id: note_id}]} = Repo.insert_all("notes", [[
+    title: "note1",
+    topic_id: topic_id,
+    order: 1,
+    inserted_at: DateTime.utc_now(),
+    updated_at: DateTime.utc_now()
+  ]],
+  returning: [:id]
 )

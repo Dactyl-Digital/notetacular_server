@@ -20,4 +20,15 @@ defmodule Dbstore.Note do
     |> validate_required([:title, :order, :topic_id])
     |> validate_length(:title, min: 4, max: 50)
   end
+  
+  def update_content_changeset(note, params \\ %{}) do
+    IO.puts("inside changeset")
+    note
+    |> cast(params, [:content_markdown, :content_text])
+    |> IO.inspect()
+    |> validate_required([:content_markdown, :content_text])
+    # TODO: Will need to write a customer validator for the content_markdown?
+    # |> validate_length(:content_markdown, min: 20)
+    # |> validate_length(:content_text, min: 20)
+  end
 end
