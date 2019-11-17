@@ -26,8 +26,8 @@ defmodule Notebooks do
   # **********************
   defdelegate create_topic(params), to: Notebooks.Impl
   defdelegate list_topics(sub_category_id), to: Notebooks.Impl
-  defdelegate update_topic_title(topic_id), to: Notebooks.Impl
-  defdelegate delete_topic(topic_id), to: Notebooks.Impl
+  defdelegate update_topic_title(params), to: Notebooks.Impl
+  defdelegate delete_topic(params), to: Notebooks.Impl
 
   # *********************
   # Note Resource Actions
@@ -35,7 +35,7 @@ defmodule Notebooks do
   defdelegate create_note(params), to: Notebooks.Impl
   defdelegate retrieve_note(params), to: Notebooks.Impl
   defdelegate list_notes(topic_id), to: Notebooks.Impl
-  defdelegate update_note_title(note_id), to: Notebooks.Impl
+  defdelegate update_note_title(params), to: Notebooks.Impl
   defdelegate update_note_content(params), to: Notebooks.Impl
   defdelegate update_note_order(note_id_and_order_list), to: Notebooks.Impl
   defdelegate delete_note(note_id), to: Notebooks.Impl

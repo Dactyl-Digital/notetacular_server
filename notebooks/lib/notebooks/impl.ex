@@ -21,7 +21,7 @@ defmodule Notebooks.Impl do
   # Notebook Resource Actions
   # *************************
   # TODO: Implement regex check on title
-  def create_notebook(%{title: _title} = params) do
+  def create_notebook(%{owner_id: owner_id, title: _title} = params) do
     %Notebook{}
     |> Notebook.changeset(params)
     |> Repo.insert()
@@ -100,12 +100,10 @@ defmodule Notebooks.Impl do
       Repo.all(query)
   end
 
-  def update_notebook_title(%{notebook_id: notebook_id} = params) do
-    IO.puts("notebook_id in update_notebook_title")
-    IO.inspect(notebook_id)
-
-    notebook_id
-    |> retrieve_notebook_by_id
+  def update_notebook_title(%{requesting_user_id: requesting_user_id, notebook_id: notebook_id} = params) do
+    # TODO
+    # notebook_id
+    # |> retrieve_notebook_by_id
     # TODO: Handle update |>
   end
 
@@ -128,6 +126,9 @@ defmodule Notebooks.Impl do
     end
   end
 
+  # TODO:
+  # Need to update this to also take requesting_user_id
+  # and change user_id to be shareuser_id
   def share_notebook_with_user(
         %{user_id: user_id, notebook_id: notebook_id, read_only: read_only} = params
       ) do
@@ -168,6 +169,8 @@ defmodule Notebooks.Impl do
   # ****************************
   # SubCategory Resource Actions
   # ****************************
+  # TODO:
+  # add requesrting_user_id authorization check
   def create_sub_category(params) do
     %SubCategory{}
     |> SubCategory.changeset(params)
@@ -209,11 +212,13 @@ defmodule Notebooks.Impl do
   end
 
   def update_sub_category_title(sub_category_id) do
-    IO.puts("sub_category_id in update_sub_category_title")
-    IO.inspect(sub_category_id)
+    # TODO:
+    # requesting_user_id
   end
 
   def delete_sub_category(sub_category_id) do
+    # TODO:
+    # requesting_user_id
     Repo.get(SubCategory, sub_category_id)
     |> Repo.delete()
   end
@@ -222,6 +227,8 @@ defmodule Notebooks.Impl do
   # Topic Resource Actions
   # **********************
   def create_topic(params) do
+    # TODO:
+    # requesting_user_id
     %Topic{}
     |> Topic.changeset(params)
     |> Repo.insert()
@@ -242,15 +249,11 @@ defmodule Notebooks.Impl do
     Repo.all(query)
   end
   
-  def update_topic_title(topic_id) do
-    IO.puts("topic_id in update_topic_title")
-    IO.inspect(topic_id)
+  def update_topic_title(%{requesting_user_id: requesting_user_id, title: title} = params) do
+    # TODO:
   end
 
-  def delete_topic(topic_id) do
-    IO.puts("topic_id in delete_topic")
-    IO.inspect(topic_id)
-    
+  def delete_topic(%{requesting_user_id: requesting_user_id, topic_id: topic_id} = params) do
     # TODO: 
     Repo.get(Topic, topic_id)
     |> Repo.delete()
@@ -267,9 +270,8 @@ defmodule Notebooks.Impl do
   
   def retrieve_note(%{requesting_user_id: requesting_user_id, note_id: note_id} = params) do
     success_fn = (fn -> Repo.get(Note, note_id) end)
-    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(
-              :read,
-              %{
+    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                operation: :read,
                 notebook_id: notebook_id,
                 requesting_user_id: requesting_user_id,
                 success_fn: success_fn
@@ -290,9 +292,8 @@ defmodule Notebooks.Impl do
     Repo.all(query)
   end
 
-  def update_note_title(note_id) do
-    IO.puts("note_id in update_note_title")
-    IO.inspect(note_id)
+  def update_note_title(%{requesting_user_id: requesting_user_id, note_id: note_id} = params) do
+    # TODO
   end
   
   defp check_notebook_access_authorization(%{
@@ -323,8 +324,8 @@ defmodule Notebooks.Impl do
     } = params) do
       success_fn = (fn -> retrieve_and_update_note_content(params) end)
       fail_fn = (fn notebook_id -> verify_shareduser_of_resource(
-                :write,
                 %{
+                  operation: :write,
                   notebook_id: notebook_id,
                   requesting_user_id: requesting_user_id,
                   success_fn: success_fn
@@ -347,7 +348,8 @@ defmodule Notebooks.Impl do
     # TODO
   end
 
-  def delete_note(note_id) do
+  def delete_note(%{requesting_user_id: requesting_user_id, note_id: note_id} = params) do
+    # TODO
     Repo.get(Note, note_id)
     |> Repo.delete()
   end
@@ -415,17 +417,20 @@ defmodule Notebooks.Impl do
     end
   end
   
-  defp verify_shareduser_of_resource(:write, %{notebook_id: notebook_id, requesting_user_id: requesting_user_id, success_fn: success_fn}) do
-    query =
+  defp retrieve_notebook_shareuser(%{notebook_id: notebook_id, requesting_user_id: requesting_user_id}) do
       from(ns in NotebookShareuser,
         where: ns.notebook_id == ^notebook_id and ns.user_id == ^requesting_user_id
       )
-    
-      IO.puts("the requesting_user_id")
-      IO.inspect(requesting_user_id)
-      IO.puts("Result of verify_shareduser_of_resource query")
-      Repo.all(query) |> IO.inspect
-    case Repo.all(query) do
+      |> Repo.all
+  end
+  
+  defp verify_shareduser_of_resource(%{
+      operation: :write,
+      notebook_id: notebook_id, 
+      requesting_user_id: requesting_user_id,
+      success_fn: success_fn
+    } = params) do
+    case retrieve_notebook_shareuser(params) do
       [%NotebookShareuser{user_id: user_id, read_only: false}] = notebook_shareuser ->
         success_fn.()
       [%NotebookShareuser{user_id: user_id, read_only: true}] = notebook_shareuser ->
@@ -437,17 +442,13 @@ defmodule Notebooks.Impl do
     end
   end
   
-  defp verify_shareduser_of_resource(:read, %{notebook_id: notebook_id, requesting_user_id: requesting_user_id, success_fn: success_fn}) do
-    query =
-      from(ns in NotebookShareuser,
-        where: ns.notebook_id == ^notebook_id and ns.user_id == ^requesting_user_id
-      )
-    
-      IO.puts("the requesting_user_id")
-      IO.inspect(requesting_user_id)
-      IO.puts("Result of verify_shareduser_of_resource query")
-      Repo.all(query) |> IO.inspect
-    case Repo.all(query) do
+  defp verify_shareduser_of_resource(%{
+      operation: :read,
+      notebook_id: notebook_id,
+      requesting_user_id: requesting_user_id,
+      success_fn: success_fn
+    } = params) do
+    case retrieve_notebook_shareuser(params) do
       [%NotebookShareuser{}] = notebook_shareuser ->
         success_fn.()
       nil ->
