@@ -34,6 +34,9 @@ defmodule BackendWeb do
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_flash: 2, view_module: 1]
 
+      # Use all HTML functionality (forms, tags, etc & link/2...)
+      use Phoenix.HTML
+      
       import BackendWeb.Router.Helpers
       import BackendWeb.ErrorHelpers
       import BackendWeb.Gettext

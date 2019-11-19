@@ -14,7 +14,7 @@ defmodule AuthTest do
   end
   
   defp setup_session_data_and_hashed_remember_token(context) do
-    {:ok, {session_data, hashed_remember_token}} = Auth.create_session_data("user1", 30)
+    {:ok, {session_data, hashed_remember_token}} = Auth.create_session_data("user1")
     context = Map.put(context, :session_data, session_data)
     {:ok, Map.put(context, :hashed_remember_token, hashed_remember_token)}
   end

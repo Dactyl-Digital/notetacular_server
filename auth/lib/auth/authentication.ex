@@ -1,8 +1,7 @@
 defmodule Auth.Authentication do
   use Timex
   
-  # TODO: FIGURE OUT THE SITUATION WITH THIS AS AN ENVIRONMENT VARIABLE?!?
-  @hash_key "7b8lEvA2aWxGB1f2MhBjhz8YRf1p21fgTxn8Qf6KciM9IJCaJ9aIn4SNna0FybxZ"
+  @expiry_time_days 1
   
   @failed_password_match_message "Username or password is incorrect."
 
@@ -29,38 +28,37 @@ defmodule Auth.Authentication do
   end
 
   # TODO: Look into how to set hash_key. Should it be an environment variable?
-  def create_session_data(username, bytes) do
-    generate_remember_token(bytes)
-    |> hash_remember_token()
+  def create_session_data(username) do
+    Auth.create_hashed_remember_token
     |> generate_session_data(username)
   end
 
-  defp generate_remember_token(bytes), do: :crypto.strong_rand_bytes(bytes) |> Base.encode64()
+  # defp generate_remember_token(bytes), do: :crypto.strong_rand_bytes(bytes) |> Base.encode64()
 
-  @doc """
-    remember_token is stored on the cookie.
+  # @doc """
+  #   remember_token is stored on the cookie.
     
-    hashed_remember_token is stored in the database.
+  #   hashed_remember_token is stored in the database.
     
-    When a subsequent request reaches the web server, then the remember_token
-    from the cookie will be hashed, and the resulting hash will be compared against
-    the hashed_remember_token in the database.
+  #   When a subsequent request reaches the web server, then the remember_token
+  #   from the cookie will be hashed, and the resulting hash will be compared against
+  #   the hashed_remember_token in the database.
     
-    If the hash matches, then we know that the contents of the cookie haven't been
-    tampered with.
-  """
-  def hash_remember_token(remember_token) do
-    case :crypto.hmac(:sha384, @hash_key, remember_token) |> Base.encode64() do
-      hashed_remember_token ->
-        {:ok, {remember_token, hashed_remember_token}}
+  #   If the hash matches, then we know that the contents of the cookie haven't been
+  #   tampered with.
+  # """
+  # def hash_remember_token(remember_token) do
+  #   case :crypto.hmac(:sha384, @hash_key, remember_token) |> Base.encode64() do
+  #     hashed_remember_token ->
+  #       {:ok, {remember_token, hashed_remember_token}}
         
-      # TODO: Got an error saying this line will never match due to line 39.
-      #       Need to see what the result of :crypto.hmac and Base.encode64 can possibly
-      #       be in the event of an error result.
-      # _ ->
-      #   {:error, "Something went wrong hashing the remember_token"}
-    end
-  end
+  #     # TODO: Got an error saying this line will never match due to line 39.
+  #     #       Need to see what the result of :crypto.hmac and Base.encode64 can possibly
+  #     #       be in the event of an error result.
+  #     # _ ->
+  #     #   {:error, "Something went wrong hashing the remember_token"}
+  #   end
+  # end
 
   defp generate_session_data({:ok, {remember_token, hashed_remember_token}}, username) do
     session_data =
@@ -76,7 +74,7 @@ defmodule Auth.Authentication do
   defp generate_expiry_time(session_data) do
     expiry =
       Timex.now()
-      |> Timex.shift(days: 1, hours: 12)
+      |> Timex.shift(days: @expiry_time_days, hours: 12)
       |> DateTime.to_unix()
 
     Map.put(session_data, :expiry, expiry)

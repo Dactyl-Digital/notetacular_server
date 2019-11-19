@@ -34,10 +34,14 @@ defmodule Backend.Mixfile do
     [
       {:phoenix, "~> 1.3.4"},
       {:phoenix_pubsub, "~> 1.0"},
+      {:phoenix_html, "~> 2.11"},
       {:gettext, "~> 0.11"},
       {:plug_cowboy, "~> 1.0"},
       {:cowboy, "~> 1.0"},
+      {:bamboo, "~> 1.3"},
       {:cors_plug, "~> 2.0"},
+      {:dbstore, path: "../dbstore"},
+      {:auth, path: "../auth"}
     ]
   end
 end

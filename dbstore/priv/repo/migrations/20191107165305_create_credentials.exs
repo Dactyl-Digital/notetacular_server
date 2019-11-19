@@ -6,6 +6,8 @@ defmodule Dbstore.Repo.Migrations.CreateCredentials do
       add(:email, :string, null: false)
       add(:password_hash, :string, null: false)
       add(:hashed_remember_token, :string)
+      add(:email_verification_token_expiry, :date)
+      add(:hashed_email_verification_token, :string)
       add(:user_id, references(:users), on_delete: :delete_all, null: false)
       
       timestamps(type: :utc_datetime)

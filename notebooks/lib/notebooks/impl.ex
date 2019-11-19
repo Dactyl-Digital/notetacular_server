@@ -100,20 +100,25 @@ defmodule Notebooks.Impl do
       Repo.all(query)
   end
 
-  def update_notebook_title(%{requesting_user_id: requesting_user_id, notebook_id: notebook_id} = params) do
+  def update_notebook_title(%{requester_id: requester_id, notebook_id: notebook_id} = params) do
     # TODO
     # notebook_id
     # |> retrieve_notebook_by_id
     # TODO: Handle update |>
   end
 
+  # THIS: create a fetch_notebook_and_verify_ownership function for everything
+  # that happens in the case?
+  # Passing in as args:
+  # notebook_id
+  # verify_owner_of_resource wrapped in a lambda
   def delete_notebook(
-        %{requesting_user_id: requesting_user_id, notebook_id: notebook_id} = params
+        %{requester_id: requester_id, notebook_id: notebook_id} = params
       ) do
     case Repo.get(Notebook, notebook_id) do
       %Notebook{owner_id: owner_id} = notebook ->
         verify_owner_of_resource(%{
-          requesting_user_id: requesting_user_id,
+          requester_id: requester_id,
           owner_id: owner_id,
           success_fn: (fn -> delete_or_transfer_ownership(notebook) end),
           fail_fn: (fn -> {:error, "UNAUTHORIZED_REQUEST"} end)
@@ -127,7 +132,7 @@ defmodule Notebooks.Impl do
   end
 
   # TODO:
-  # Need to update this to also take requesting_user_id
+  # Need to update this to also take requester_id
   # and change user_id to be shareuser_id
   def share_notebook_with_user(
         %{user_id: user_id, notebook_id: notebook_id, read_only: read_only} = params
@@ -171,10 +176,28 @@ defmodule Notebooks.Impl do
   # ****************************
   # TODO:
   # add requesrting_user_id authorization check
-  def create_sub_category(params) do
-    %SubCategory{}
-    |> SubCategory.changeset(params)
-    |> Repo.insert()
+  def create_sub_category(%{requester_id: requester_id, title: _title, notebook_id: _notebook_id} = params) do
+    success_fn = (fn ->
+      %SubCategory{}
+        |> SubCategory.changeset(params)
+        |> Repo.insert()
+      end)
+    fail_fn = (fn {:err, "UNAUTHORIZED_REQUEST"} end)
+    # check_notebook_access_authorization(params, success_fn, fail_fn)
+    case Repo.get(Notebook, notebook_id) do
+      %Notebook{owner_id: owner_id} = notebook ->
+        verify_owner_of_resource(%{
+          requester_id: requester_id,
+          owner_id: owner_id,
+          success_fn: success_fn,
+          fail_fn: fail_fn
+        })
+
+      nil ->
+        # TODO: Most ideal error to return?
+        # This is the case where the Notebook doesn't exist.
+        {:error, "UNAUTHORIZED_REQUEST"}
+    end
   end
 
   @doc """
@@ -213,12 +236,12 @@ defmodule Notebooks.Impl do
 
   def update_sub_category_title(sub_category_id) do
     # TODO:
-    # requesting_user_id
+    # requester_id
   end
 
   def delete_sub_category(sub_category_id) do
     # TODO:
-    # requesting_user_id
+    # requester_id
     Repo.get(SubCategory, sub_category_id)
     |> Repo.delete()
   end
@@ -228,7 +251,7 @@ defmodule Notebooks.Impl do
   # **********************
   def create_topic(params) do
     # TODO:
-    # requesting_user_id
+    # requester_id
     %Topic{}
     |> Topic.changeset(params)
     |> Repo.insert()
@@ -249,11 +272,11 @@ defmodule Notebooks.Impl do
     Repo.all(query)
   end
   
-  def update_topic_title(%{requesting_user_id: requesting_user_id, title: title} = params) do
+  def update_topic_title(%{requester_id: requester_id, title: title} = params) do
     # TODO:
   end
 
-  def delete_topic(%{requesting_user_id: requesting_user_id, topic_id: topic_id} = params) do
+  def delete_topic(%{requester_id: requester_id, topic_id: topic_id} = params) do
     # TODO: 
     Repo.get(Topic, topic_id)
     |> Repo.delete()
@@ -268,12 +291,12 @@ defmodule Notebooks.Impl do
     |> Repo.insert()
   end
   
-  def retrieve_note(%{requesting_user_id: requesting_user_id, note_id: note_id} = params) do
+  def retrieve_note(%{requester_id: requester_id, note_id: note_id} = params) do
     success_fn = (fn -> Repo.get(Note, note_id) end)
     fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
                 operation: :read,
                 notebook_id: notebook_id,
-                requesting_user_id: requesting_user_id,
+                requester_id: requester_id,
                 success_fn: success_fn
               }) end)
     check_notebook_access_authorization(params, success_fn, fail_fn)
@@ -292,18 +315,18 @@ defmodule Notebooks.Impl do
     Repo.all(query)
   end
 
-  def update_note_title(%{requesting_user_id: requesting_user_id, note_id: note_id} = params) do
+  def update_note_title(%{requester_id: requester_id, note_id: note_id} = params) do
     # TODO
   end
   
   defp check_notebook_access_authorization(%{
-      requesting_user_id: requesting_user_id,
+      requester_id: requester_id,
       note_id: note_id
     } = params, success_fn, fail_fn) do
     case retrieve_notes_associated_notebook(%{note_id: note_id}) do
       [%{notebook_id: notebook_id, owner_id: owner_id}] ->
         verify_owner_of_resource(%{
-          requesting_user_id: requesting_user_id,
+          requester_id: requester_id,
           owner_id: owner_id,
           success_fn: success_fn,
           fail_fn: (fn -> fail_fn.(notebook_id) end)
@@ -317,17 +340,16 @@ defmodule Notebooks.Impl do
   end
   
   def update_note_content(
-    %{requesting_user_id: requesting_user_id,
+    %{requester_id: requester_id,
       note_id: note_id,
       content_markdown: content_markdown,
       content_text: content_text
     } = params) do
       success_fn = (fn -> retrieve_and_update_note_content(params) end)
-      fail_fn = (fn notebook_id -> verify_shareduser_of_resource(
-                %{
+      fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
                   operation: :write,
                   notebook_id: notebook_id,
-                  requesting_user_id: requesting_user_id,
+                  requester_id: requester_id,
                   success_fn: success_fn
                 }) end)
       check_notebook_access_authorization(params, success_fn, fail_fn)
@@ -348,7 +370,7 @@ defmodule Notebooks.Impl do
     # TODO
   end
 
-  def delete_note(%{requesting_user_id: requesting_user_id, note_id: note_id} = params) do
+  def delete_note(%{requester_id: requester_id, note_id: note_id} = params) do
     # TODO
     Repo.get(Note, note_id)
     |> Repo.delete()
@@ -409,17 +431,17 @@ defmodule Notebooks.Impl do
   # ****************************************************
   # Authorization Checks to Perform Actions on Resources
   # ****************************************************
-  defp verify_owner_of_resource(%{requesting_user_id: requesting_user_id, owner_id: owner_id, success_fn: success_fn, fail_fn: fail_fn}) do
-    if requesting_user_id === owner_id do
+  defp verify_owner_of_resource(%{requester_id: requester_id, owner_id: owner_id, success_fn: success_fn, fail_fn: fail_fn}) do
+    if requester_id === owner_id do
       success_fn.()
     else
       fail_fn.()
     end
   end
   
-  defp retrieve_notebook_shareuser(%{notebook_id: notebook_id, requesting_user_id: requesting_user_id}) do
+  defp retrieve_notebook_shareuser(%{notebook_id: notebook_id, requester_id: requester_id}) do
       from(ns in NotebookShareuser,
-        where: ns.notebook_id == ^notebook_id and ns.user_id == ^requesting_user_id
+        where: ns.notebook_id == ^notebook_id and ns.user_id == ^requester_id
       )
       |> Repo.all
   end
@@ -427,7 +449,7 @@ defmodule Notebooks.Impl do
   defp verify_shareduser_of_resource(%{
       operation: :write,
       notebook_id: notebook_id, 
-      requesting_user_id: requesting_user_id,
+      requester_id: requester_id,
       success_fn: success_fn
     } = params) do
     case retrieve_notebook_shareuser(params) do
@@ -445,7 +467,7 @@ defmodule Notebooks.Impl do
   defp verify_shareduser_of_resource(%{
       operation: :read,
       notebook_id: notebook_id,
-      requesting_user_id: requesting_user_id,
+      requester_id: requester_id,
       success_fn: success_fn
     } = params) do
     case retrieve_notebook_shareuser(params) do

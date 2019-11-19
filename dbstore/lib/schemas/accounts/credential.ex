@@ -12,6 +12,8 @@ defmodule Dbstore.Credential do
     field(:password, :string, virtual: true)
     field(:password_hash, :string)
     field(:hashed_remember_token, :string)
+    field(:email_verification_token_expiry, :date)
+    field(:hashed_email_verification_token, :string)
     
     timestamps()
     belongs_to(:users, Dbstore.User, foreign_key: :user_id)
@@ -38,4 +40,3 @@ defmodule Dbstore.Credential do
 
   defp put_pass_hash(changeset), do: changeset
 end
-

@@ -14,7 +14,7 @@ defmodule Auth.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [:logger, :timex, :bamboo],
       mod: {Auth.Application, []}
     ]
   end
@@ -26,7 +26,7 @@ defmodule Auth.MixProject do
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
       # {:plug_cowboy, "~> 2.0"},
       {:argon2_elixir, "~> 2.0"},
-      {:timex, "~> 3.0"}
+      {:timex, "~> 3.0"},
     ]
   end
 end

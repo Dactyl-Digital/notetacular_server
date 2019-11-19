@@ -1,0 +1,7 @@
+<div>
+    <p>The email: <%= @email %>
+    <br/>
+    <p>The link: <%= BackendWeb.Router.Helpers.auth_path(BackendWeb.Endpoint, :verify_email, email_verification_token: @email_verification_token, email: @email) %></p>
+    <br/>
+    <%= link "Verify your email!", to: "#{"http://localhost:4000"}#{BackendWeb.Router.Helpers.auth_path(BackendWeb.Endpoint, :verify_email, email_verification_token: @email_verification_token, email: @email)}" %>
+</div>

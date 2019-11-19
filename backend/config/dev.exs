@@ -14,6 +14,17 @@ config :backend, BackendWeb.Endpoint,
   watchers: [node: ["node_modules/brunch/bin/brunch", "watch", "--stdin",
                     cd: Path.expand("../assets", __DIR__)]]
 
+config :dbstore, Dbstore.Repo,
+  adapter: Ecto.Adapters.Postgres,
+  database: "notastical_dev",
+  username: "jamesgood",
+  password: "postgres",
+  hostname: "localhost",
+  pool_size: 10
+
+config :backend, Backend.Mailer,
+  adapter: Bamboo.LocalAdapter
+  
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed

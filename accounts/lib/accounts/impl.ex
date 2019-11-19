@@ -32,4 +32,22 @@ defmodule Accounts.Impl do
     IO.puts("params in signup_user")
     IO.inspect(params)
   end
+  
+  defp update_user_token(:hashed_remember_token, user_id, token) do
+    %User{id: user_id}
+    |> Changeset.cast(
+      %{hashed_remember_token: token},
+      [:hashed_remember_token]
+    )
+    |> Repo.update()
+  end
+  
+  defp update_user_token(:hashed_email_verification_token, user_id, token) do
+    %User{id: user_id}
+    |> Changeset.cast(
+      %{hashed_email_verification_token: token},
+      [:hashed_email_verification_token]
+    )
+    |> Repo.update()
+  end
 end

@@ -6,6 +6,7 @@ defmodule Dbstore.User do
   schema "users" do
     field(:username, :string)
     field(:last_seen_active, :date)
+    field(:account_active, :boolean)
     
     timestamps()
     has_one :credentials, Dbstore.Credential

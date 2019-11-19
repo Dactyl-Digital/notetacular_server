@@ -35,6 +35,10 @@ defmodule BackendWeb.Router do
     pipe_through(:api)
 
     get("/test", TestApiController, :test)
+    # Usage in the email template which will be sent to user:
+    # The key is that the helper function will be based on the controller name
+    # i.e. Backend.Router.Helpers.auth_path(Backend.Endpoint, :verify_email, %{} = params)
+    get("/verify-email", AuthController, :verify_email)
   end
 
   scope "/admin", BackendWeb do
