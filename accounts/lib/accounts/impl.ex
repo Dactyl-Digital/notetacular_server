@@ -4,7 +4,7 @@ defmodule Accounts.Impl do
   """
   import Ecto.Query
   alias Ecto.Changeset
-  alias Dbstore.{Repo, User, Permissions}
+  alias Dbstore.{Repo, User, Credential, Permissions}
 
   # Key for hashing the user's remember_token TODO: (This is duplicated in backend/temp/auth_plug.ex)
   # mix phx.gen.secret [length]
@@ -33,7 +33,9 @@ defmodule Accounts.Impl do
     IO.inspect(params)
   end
   
-  defp update_user_token(:hashed_remember_token, user_id, token) do
+  def retrieve_users_credentials_by_email(email), do: Repo.get_by(Credential, email: email)
+  
+  def update_user_token(:hashed_remember_token, user_id, token) do
     %User{id: user_id}
     |> Changeset.cast(
       %{hashed_remember_token: token},
@@ -42,8 +44,8 @@ defmodule Accounts.Impl do
     |> Repo.update()
   end
   
-  defp update_user_token(:hashed_email_verification_token, user_id, token) do
-    %User{id: user_id}
+  def update_user_token(:hashed_email_verification_token, email, token) do
+    %Credential{email: email}
     |> Changeset.cast(
       %{hashed_email_verification_token: token},
       [:hashed_email_verification_token]
