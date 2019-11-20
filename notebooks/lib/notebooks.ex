@@ -40,6 +40,11 @@ defmodule Notebooks do
   defdelegate update_note_order(note_id_and_order_list), to: Notebooks.Impl
   defdelegate delete_note(note_id), to: Notebooks.Impl
   
+  # **************************
+  # NoteTimer Resource Actions
+  # **************************
+  defdelegate create_note_timer(params), to: Notebooks.Impl
+  
   # **************************************
   # For Internal Usage within Context only
   # (Exposing only for purposes of testing)

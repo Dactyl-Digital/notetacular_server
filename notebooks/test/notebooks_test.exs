@@ -3,8 +3,44 @@ defmodule NotebooksTest do
   use NotebookBuilders
   doctest Notebooks
   alias Notebooks
-  alias Dbstore.{Repo, User, Notebook, SubCategory, Topic, Note, NotebookShareuser}
+  alias Dbstore.{Repo, User, NotebookShareuser, Notebook, SubCategory, Topic, Note, NoteTimer}
 
+  defp setup_user(context) do
+    {1, [%{id: user_id}]} = Repo.insert_all("users", create_n_users(1), returning: [:id])
+    context = Map.put(context, :user_id, user_id)
+    {:ok, context}
+  end
+  
+  defp setup_notebook(%{user_id: user_id} = context) do
+    {1, [%{id: notebook1_id}]} = Repo.insert_all("notebooks", create_n_notebooks(1, user_id), returning: [:id])
+    context = Map.put(context, :notebook1_id, notebook1_id)
+    {:ok, context}
+  end
+  
+  defp setup_sub_category(%{notebook1_id: notebook1_id} = context) do
+    {1, [%{id: sub_category1_id}]} = Repo.insert_all("sub_categories", create_n_sub_categories(1, notebook1_id), returning: [:id])
+    context = Map.put(context, :sub_category1_id, sub_category1_id)
+    {:ok, context}
+  end
+  
+  defp setup_topic(%{sub_category1_id: sub_category1_id} = context) do
+    {1, [%{id: topic1_id}]} = Repo.insert_all("topics", create_n_topics(1, sub_category1_id), returning: [:id])
+    context = Map.put(context, :topic1_id, topic1_id)
+    {:ok, context}
+  end
+  
+  defp setup_note(%{topic1_id: topic1_id} = context) do
+    {1, [%{id: note1_id}]} = Repo.insert_all("notes", create_n_notes(1, topic1_id), returning: [:id])
+    context = Map.put(context, :note1_id, note1_id)
+    {:ok, context}
+  end
+  
+  # defp setup_note_timer(%{note1_id: note1_id} = context) do
+  #   {1, [%{id: note_timer1_id}]} = Repo.insert_all("note_timers", create_n_note_timers(1, note1_id), returning: [:id])
+  #   context = Map.put(context, :note_timer1_id, note_timer1_id)
+  #   {:ok, context}
+  # end
+  
   defp setup_users(context) do
     {3, [%{id: user1_id}, %{id: user2_id}, %{id: user3_id}]} = Repo.insert_all("users", create_n_users(3), returning: [:id])
     context = Map.put(context, :user1_id, user1_id)
@@ -56,20 +92,13 @@ defmodule NotebooksTest do
   end
 
   defp setup_notebook_shareuser(context) do
-    {
-      :ok,
-      read_only_notebook_shareuser
-    } =
+    {:ok, read_only_notebook_shareuser} =
       Notebooks.share_notebook_with_user(%{
         user_id: context.user2_id,
         notebook_id: context.read_only_shared_notebook_id,
         read_only: true
       })
-
-    {
-      :ok,
-      write_enabled_notebook_shareuser
-    } =
+    {:ok, write_enabled_notebook_shareuser} =
       Notebooks.share_notebook_with_user(%{
         user_id: context.user2_id,
         notebook_id: context.write_enabled_shared_notebook_id,
@@ -77,7 +106,6 @@ defmodule NotebooksTest do
       })
 
     context = Map.put(context, :read_only_notebook_shareuser, read_only_notebook_shareuser)
-
     context =
       Map.put(context, :write_enabled_notebook_shareuser, write_enabled_notebook_shareuser)
 
@@ -102,6 +130,54 @@ defmodule NotebooksTest do
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Dbstore.Repo)
+  end
+  
+  describe "Notebook resources create functions allow a user to" do
+    setup [:setup_user, :setup_notebook, :setup_sub_category, :setup_topic, :setup_note]
+    
+    test "create_notebook/1 inserts a notebook into the DB", %{user_id: user_id} do
+      assert {:ok, %Notebook{title: title, owner_id: user_id}} =
+                Notebooks.create_notebook(%{title: "notebookTitle", owner_id: user_id})
+    end
+    
+    test "create_sub_category/1 inserts a sub_category into the DB", %{user_id: user_id, notebook1_id: notebook1_id} do
+      assert {:ok, %SubCategory{title: title, notebook_id: notebook1_id}} =
+        Notebooks.create_sub_category(%{
+                    requester_id: user_id,
+                    title: "subcategoryTitle",
+                    notebook_id: notebook1_id
+                  })
+    end
+    
+    test "create_topic/1 inserts a topic into the DB", %{user_id: user_id, sub_category1_id: sub_category1_id} do
+      assert {:ok, %Topic{title: title, sub_category_id: sub_category1_id}} =
+        Notebooks.create_topic(%{
+                    requester_id: user_id,
+                    title: "topicTitle",
+                    sub_category_id: sub_category1_id
+                  })
+    end
+    
+    test "create_note/1 inserts a note into the DB", %{user_id: user_id, topic1_id: topic1_id} do
+      assert {:ok, %Note{title: title, topic_id: topic1_id}} =
+        Notebooks.create_note(%{
+                    requester_id: user_id,
+                    title: "noteTitle",
+                    order: 1,
+                    topic_id: topic1_id
+                  })
+    end
+    
+    test "create_note_timer/1 inserts a note_timer into the DB", %{user_id: user_id, note1_id: note1_id} do
+      note_timer = Notebooks.create_note_timer(%{
+        requester_id: user_id,
+        note_id: note1_id
+      })
+      IO.puts("note_timer")
+      IO.inspect(note_timer)
+      assert {:ok, %NoteTimer{note_id: note1_id}} = note_timer
+        
+    end
   end
   
   # TODO: Add testing for this stuff
@@ -137,11 +213,6 @@ defmodule NotebooksTest do
       :setup_notes,
       :setup_notebook_shareuser
     ]
-
-    # test "create a notebook", %{user1_id: user1_id, read_only_shared_notebook_id: read_only_shared_notebook_id} do
-    #   assert {:ok, %Notebook{title: title, owner_id: owner_id}} =
-    #            Notebooks.create_notebook(%{title: "notebook3", owner_id: user1_id})
-    # end
 
     test "unshared notebooks remain private when listing the user's own notebooks", %{
       user2_id: user2_id,

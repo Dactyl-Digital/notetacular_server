@@ -37,7 +37,7 @@ defmodule NotebookBuilders do
   # ************************
   # Notebook Setup Functions
   # ************************
-  def create_notebook(i, owner_id) do
+  def create_notebook_data(i, owner_id) do
     # %Notebook{}
     # |> Notebook.changeset(%{
     #   title: "notebook#{i}",
@@ -52,7 +52,7 @@ defmodule NotebookBuilders do
   end
 
   def create_n_notebooks(n, owner_id),
-    do: Enum.map(1..n, fn i -> create_notebook(i, owner_id) end)
+    do: Enum.map(1..n, fn i -> create_notebook_data(i, owner_id) end)
 
   # ****************************
   # Sub Category Setup Functions
@@ -64,9 +64,18 @@ defmodule NotebookBuilders do
       notebook_id: notebook_id
     })
   end
+  
+  def create_sub_category_data(i, notebook_id) do
+    [
+      title: "sub_category#{i}",
+      notebook_id: notebook_id,
+      inserted_at: DateTime.utc_now(),
+      updated_at: DateTime.utc_now(),
+    ]
+  end
 
   def create_n_sub_categories(n, notebook_id),
-    do: Enum.map(1..n, fn i -> create_sub_category(i, notebook_id) end)
+    do: Enum.map(1..n, fn i -> create_sub_category_data(i, notebook_id) end)
 
   def extract_sub_category_ids(list), do: Enum.map(list, fn {:ok, %SubCategory{id: id}} -> id end)
 
@@ -80,6 +89,18 @@ defmodule NotebookBuilders do
       sub_category_id: sub_category_id
     })
   end
+  
+  def create_topic_data(i, sub_category_id) do
+    [
+      title: "topic#{i}",
+      sub_category_id: sub_category_id,
+      inserted_at: DateTime.utc_now(),
+      updated_at: DateTime.utc_now(),
+    ]
+  end
+  
+  def create_n_topics(n, sub_category_id),
+    do: Enum.map(1..n, fn i -> create_topic_data(i, sub_category_id) end)
 
   # ********************
   # Note Setup Functions
@@ -93,4 +114,32 @@ defmodule NotebookBuilders do
       content_text: "Random text to test search functionality."
     })
   end
+  
+  def create_note_data(i, topic_id) do
+    [
+      title: "note#{i}",
+      order: i,
+      topic_id: topic_id,
+      inserted_at: DateTime.utc_now(),
+      updated_at: DateTime.utc_now(),
+    ]
+  end
+   
+  def create_n_notes(n, topic_id),
+    do: Enum.map(1..n, fn i -> create_note_data(i, topic_id) end)
+    
+  # ********************
+  # NoteTimer Setup Functions
+  # ********************
+  # def create_note_timer_data(i, note_id) do
+  #   [
+  #     timer: :timer.minutes(1),
+  #     timer_count: 1,
+  #     inserted_at: DateTime.utc_now(),
+  #     updated_at: DateTime.utc_now(),
+  #   ]
+  # end
+    
+  # def create_n_note_timers(1, note_id),
+  #   do: Enum.map(1..n, fn i -> create_note_data(i, note_id) end)
 end

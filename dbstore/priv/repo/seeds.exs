@@ -3,7 +3,21 @@
 #     mix run priv/repo/seeds.exs
 #
 
-alias Dbstore.{Repo, User, Credential, Membership, Billing, Role, Permission, Notebook, SubCategory, Topic, Note, NoteTimer}
+alias Dbstore.{
+  Repo,
+  User,
+  Credential,
+  Membership,
+  Billing,
+  Role,
+  Permission,
+  NotebookShareuser,
+  Notebook,
+  SubCategory,
+  Topic,
+  Note,
+  NoteTimer
+}
 
 Repo.delete_all(Note)
 Repo.delete_all(Topic)
@@ -18,10 +32,9 @@ Repo.delete_all("role_permissions")
 Repo.delete_all(Role)
 Repo.delete_all(Permission)
 
-#
+#######
 # USERS
-#
-
+#######
 {:ok, user1} =
   %User{}
   |> User.changeset(%{
@@ -37,6 +50,22 @@ Repo.delete_all(Permission)
       }
     })
   |> Repo.insert
+  
+  {:ok, user2} =
+    %User{}
+    |> User.changeset(%{
+        username: "user2",
+        credentials: %{
+          email: "user2@gmail.com",
+          password: "password"
+        },
+        memberships: %{
+          # NOTE: The initial sign_up_user controller/resolver will
+          # use timex to generate the initial trial period as well.
+          subscribed_until: Timex.now() |> Timex.shift(days: 30)
+        }
+      })
+    |> Repo.insert
   
 {:ok, role} = 
   %Role{} 
@@ -85,6 +114,10 @@ Repo.delete_all(Permission)
   ]],
   returning: [:id]
 )
+
+%NotebookShareuser{}
+|> NotebookShareuser.changeset(%{user_id: user2.id, notebook_id: notebook_id, read_only: false})
+|> Repo.insert
 
 {1, [%{id: sub_category_id}]} = Repo.insert_all("sub_categories", [[
     title: "sub_category1",

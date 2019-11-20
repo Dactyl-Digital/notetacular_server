@@ -64,7 +64,7 @@ defmodule Notebooks.Impl do
   end
   
   @doc """
-   Returns an array of:
+  Returns an array of:
   [
     %Dbstore.Notebook{
       __meta__: #Ecto.Schema.Metadata<:loaded, "notebooks">,
@@ -124,9 +124,10 @@ defmodule Notebooks.Impl do
   # Passing in as args:
   # notebook_id
   # verify_owner_of_resource wrapped in a lambda
-  def delete_notebook(
-        %{requester_id: requester_id, notebook_id: notebook_id} = params
-      ) do
+  def delete_notebook(%{
+    requester_id: requester_id,
+    notebook_id: notebook_id
+  } = params) do
     case Repo.get(Notebook, notebook_id) do
       %Notebook{owner_id: owner_id} = notebook ->
         verify_owner_of_resource(%{
@@ -146,9 +147,11 @@ defmodule Notebooks.Impl do
   # TODO:
   # Need to update this to also take requester_id
   # and change user_id to be shareuser_id
-  def share_notebook_with_user(
-        %{user_id: user_id, notebook_id: notebook_id, read_only: read_only} = params
-      ) do
+  def share_notebook_with_user(%{
+    user_id: user_id,
+    notebook_id: notebook_id,
+    read_only: read_only
+  } = params) do
     %NotebookShareuser{}
     |> NotebookShareuser.changeset(params)
     |> Repo.insert()
@@ -510,11 +513,11 @@ defmodule Notebooks.Impl do
   #       the first letter of every word when displaying them?
   # Or perhaps this is a non concern....
   @doc """
-    Success case:
-    {:ok, struct}
-    
-    Error case:
-    {:error, changeset} // W/ validation/contraint errors.
+  Success case:
+  {:ok, struct}
+  
+  Error case:
+  {:error, changeset} // W/ validation/contraint errors.
   """
   def add_tags(:topic, %{topic_id: topic_id, tags: tags} = params) do
     topic = Repo.get(Topic, topic_id)
@@ -558,6 +561,43 @@ defmodule Notebooks.Impl do
     end)
   end
   
+  # **************************
+  # NoteTimer Resource Actions
+  # **************************
+  def create_note_timer(%{
+      requester_id: requester_id,
+      note_id: note_id
+    } = params) do
+      {:ok, time} = Time.new(0, 0, 0, 0)
+      success_fn = (fn ->
+       %NoteTimer{}
+       |> NoteTimer.changeset(%{
+            timer: time,
+            timer_count: 1,
+            note_id: note_id
+          })
+       |> Repo.insert
+        # Repo.insert_all("note_timers", [[
+        #   timer: time,
+        #   timer_count: 1,
+        #   note_id: note_id,
+        #   inserted_at: DateTime.utc_now(),
+        #   updated_at: DateTime.utc_now(),
+        # ]], returning: [:id])
+      end)
+      fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                  operation: :write,
+                  notebook_id: notebook_id,
+                  requester_id: requester_id,
+                  success_fn: success_fn
+                }) end)
+      check_notebook_access_authorization(%{
+        requester_id: requester_id,
+        resource_id: note_id,
+        resource_type: :note,
+      }, success_fn, fail_fn)
+  end
+  
   # ****************************************************
   # Authorization Checks to Perform Actions on Resources
   # ****************************************************
@@ -572,16 +612,15 @@ defmodule Notebooks.Impl do
   defp retrieve_notebook_shareuser(%{notebook_id: notebook_id, requester_id: requester_id}) do
       from(ns in NotebookShareuser,
         where: ns.notebook_id == ^notebook_id and ns.user_id == ^requester_id
-      )
-      |> Repo.all
+      ) |> Repo.all
   end
   
   defp verify_shareduser_of_resource(%{
-      operation: :write,
-      notebook_id: notebook_id, 
-      requester_id: requester_id,
-      success_fn: success_fn
-    } = params) do
+    operation: :write,
+    notebook_id: notebook_id, 
+    requester_id: requester_id,
+    success_fn: success_fn
+  } = params) do
     case retrieve_notebook_shareuser(params) do
       [%NotebookShareuser{user_id: user_id, read_only: false}] = notebook_shareuser ->
         success_fn.()
@@ -595,11 +634,11 @@ defmodule Notebooks.Impl do
   end
   
   defp verify_shareduser_of_resource(%{
-      operation: :read,
-      notebook_id: notebook_id,
-      requester_id: requester_id,
-      success_fn: success_fn
-    } = params) do
+    operation: :read,
+    notebook_id: notebook_id,
+    requester_id: requester_id,
+    success_fn: success_fn
+  } = params) do
     case retrieve_notebook_shareuser(params) do
       [%NotebookShareuser{}] = notebook_shareuser ->
         success_fn.()
@@ -632,7 +671,7 @@ defmodule Notebooks.Impl do
   end
   
   defp delegate_notebook_resource_retrieval(:sub_category, resource_id) do
-    retrieve_sub_categories_associated_notebook(%{note_id: resource_id})
+    retrieve_sub_categories_associated_notebook(%{sub_category_id: resource_id})
   end
   
   defp delegate_notebook_resource_retrieval(:topic, resource_id) do
@@ -644,7 +683,7 @@ defmodule Notebooks.Impl do
   end
   
   defp delegate_notebook_resource_retrieval(:note_timer, resource_id) do
-    retrieve_note_timers_associated_notebook(%{note_id: resource_id})
+    retrieve_note_timers_associated_notebook(%{note_timer_id: resource_id})
   end
   
   defp delegate_notebook_resource_retrieval(:notebook, resource_id) do
