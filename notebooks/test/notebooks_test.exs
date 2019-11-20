@@ -173,12 +173,12 @@ defmodule NotebooksTest do
     test "ensure that a read_only notebook_shareuser can read, but not edit notes in the notebook.",
          %{read_only_notebook_shareuser: read_only_notebook_shareuser, read_only_shared_note_id: read_only_shared_note_id, read_only_shared_notebook_id: read_only_shared_notebook_id} do
           assert %Note{id: note_id} = Notebooks.retrieve_note(%{
-            requesting_user_id: read_only_notebook_shareuser.user_id,
+            requester_id: read_only_notebook_shareuser.user_id,
             note_id: read_only_shared_note_id
           })
           assert note_id === read_only_shared_note_id
           assert {:err, "UNAUTHORIZED_REQUEST"} = Notebooks.update_note_content(
-            %{requesting_user_id: read_only_notebook_shareuser.user_id,
+            %{requester_id: read_only_notebook_shareuser.user_id,
               note_id: read_only_shared_note_id,
               content_markdown: %{content: "this is it"},
               content_text: "this is it"

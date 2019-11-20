@@ -1,9 +1,10 @@
 defmodule Backend.EmailTest do
   use ExUnit.Case
+  alias Backend.Email
 
-  test "sends an email verification email" do
-    %Bamboo.Email{to: [nil: to], subject: subject, html_body: html_body} =
-      Backend.Email.send_email_verification_email("test@test.com")
+  test "creates a formatted verification email" do
+    email = Email.format_verification_email(%{email: "test@test.com", email_verification_token: "test_token"})
+    %Bamboo.Email{to: to, subject: subject, html_body: html_body} = email
     
     assert to === "test@test.com"
     assert subject === "Notastical - Please verify your email"

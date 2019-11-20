@@ -18,4 +18,11 @@ defmodule Dbstore.Topic do
     |> validate_required([:title, :sub_category_id])
     |> validate_length(:title, min: 4, max: 50)
   end
+  
+  def add_tags_changeset(topic, params \\ %{}) do
+    topic
+    |> cast(params, [:tags])
+    |> validate_required([:tags])
+    # TODO: Add custom validator to ensure tag length > 2
+  end
 end

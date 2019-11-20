@@ -17,6 +17,14 @@ defmodule Notebooks.Impl do
   @something_went_wrong_message "Oops... Something went wrong. Please try again."
   @permission_not_found_message "Permission not found"
 
+  # TODO:
+  # Implement creating updated_resources table in the DB
+  # Every time a notebook_shareuser makes an update, create
+  # an updated_resource resource to enable potential rollback.
+  # The updated_resource will have a row which
+  # contains the old content, and a row for the new changes.
+  # Perhaps easiest to implement these as just a JSONB. 
+  
   # *************************
   # Notebook Resource Actions
   # *************************
@@ -31,14 +39,13 @@ defmodule Notebooks.Impl do
   #       the returned resource.
   def list_notebooks(%{owner_id: owner_id, limit: limit, offset: offset} = params) do
     sub_categories_query = from s in SubCategory, select: s.id
-    query =
-      from(n in Notebook,
-        preload: [sub_categories: ^sub_categories_query],
-        where: n.owner_id == ^owner_id,
-        order_by: :inserted_at,
-        limit: ^limit,
-        offset: ^offset,
-      )
+    from(n in Notebook,
+      preload: [sub_categories: ^sub_categories_query],
+      where: n.owner_id == ^owner_id,
+      order_by: :inserted_at,
+      limit: ^limit,
+      offset: ^offset,
+    ) |> Repo.all
 
     # NOTE: This is fucked.
     #       When joining a table and using where
@@ -54,7 +61,6 @@ defmodule Notebooks.Impl do
     #     on: nsu.user_id == ^owner_id,
     #     where: n.owner_id == ^owner_id,
     #   )
-    Repo.all(query)
   end
   
   @doc """
@@ -87,17 +93,15 @@ defmodule Notebooks.Impl do
   """
   def list_shared_notebooks(%{user_id: user_id, limit: limit, offset: offset} = params) do
     sub_categories_query = from s in SubCategory, select: s.id
-    query =
-      from(n in Notebook,
-        preload: [sub_categories: ^sub_categories_query],
-        join: nsu in "notebook_shareusers",
-        on: nsu.user_id == ^user_id,
-        where: n.id == nsu.notebook_id,
-        order_by: [desc: n.inserted_at],
-        limit: ^limit,
-        offset: ^offset,
-      )
-      Repo.all(query)
+    from(n in Notebook,
+      preload: [sub_categories: ^sub_categories_query],
+      join: nsu in "notebook_shareusers",
+      on: nsu.user_id == ^user_id,
+      where: n.id == nsu.notebook_id,
+      order_by: [desc: n.inserted_at],
+      limit: ^limit,
+      offset: ^offset,
+    ) |> Repo.all
   end
 
   def update_notebook_title(%{requester_id: requester_id, notebook_id: notebook_id} = params) do
@@ -105,6 +109,14 @@ defmodule Notebooks.Impl do
     # notebook_id
     # |> retrieve_notebook_by_id
     # TODO: Handle update |>
+    
+    # defp check_notebook_access_authorization(%{
+    #   requester_id: requester_id,
+    #   resource_type: resource_type,
+    #   resource_id: resource_id
+    # } = params, success_fn, fail_fn) do
+
+    # end
   end
 
   # THIS: create a fetch_notebook_and_verify_ownership function for everything
@@ -174,30 +186,23 @@ defmodule Notebooks.Impl do
   # ****************************
   # SubCategory Resource Actions
   # ****************************
-  # TODO:
-  # add requesrting_user_id authorization check
-  def create_sub_category(%{requester_id: requester_id, title: _title, notebook_id: _notebook_id} = params) do
-    success_fn = (fn ->
-      %SubCategory{}
-        |> SubCategory.changeset(params)
-        |> Repo.insert()
-      end)
-    fail_fn = (fn {:err, "UNAUTHORIZED_REQUEST"} end)
-    # check_notebook_access_authorization(params, success_fn, fail_fn)
-    case Repo.get(Notebook, notebook_id) do
-      %Notebook{owner_id: owner_id} = notebook ->
-        verify_owner_of_resource(%{
-          requester_id: requester_id,
-          owner_id: owner_id,
-          success_fn: success_fn,
-          fail_fn: fail_fn
-        })
-
-      nil ->
-        # TODO: Most ideal error to return?
-        # This is the case where the Notebook doesn't exist.
-        {:error, "UNAUTHORIZED_REQUEST"}
-    end
+  def create_sub_category(%{
+    requester_id: requester_id,
+    title: title,
+    notebook_id: notebook_id
+  } = params) do
+    success_fn = (fn -> %SubCategory{} |> SubCategory.changeset(params) |> Repo.insert end)
+    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                operation: :write,
+                notebook_id: notebook_id,
+                requester_id: requester_id,
+                success_fn: success_fn
+              }) end)
+    check_notebook_access_authorization(%{
+      requester_id: requester_id,
+      resource_id: notebook_id,
+      resource_type: :notebook,
+    }, success_fn, fail_fn)
   end
 
   @doc """
@@ -219,19 +224,38 @@ defmodule Notebooks.Impl do
   
   List of topic ids to facilitate listing a particular sub categories' topics in the UI.
   """
-  def list_sub_categories(%{sub_category_id_list: sub_category_id_list, limit: limit, offset: offset} = params) do
+  def list_sub_categories(%{
+    requester_id: requester_id,
+    sub_category_id_list: sub_category_id_list,
+    limit: limit,
+    offset: offset
+  } = params) when length(sub_category_id_list) > 0 do
+    success_fn = (fn -> list_sub_categories_query(params) end)
+    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                operation: :read,
+                notebook_id: notebook_id,
+                requester_id: requester_id,
+                success_fn: success_fn
+              }) end)
+    check_notebook_access_authorization(%{
+      requester_id: requester_id,
+      resource_id: Enum.at(sub_category_id_list, 0),
+      resource_type: :sub_category,
+    }, success_fn, fail_fn)
+  end
+  
+  def list_sub_categories(_), do: {:err, "sub_category_id_list must be greater than 0"}
+  
+  defp list_sub_categories_query(%{sub_category_id_list: sub_category_id_list, limit: limit, offset: offset} = params) do
     topics_query = from t in Topic, select: t.id
-    query = 
-      from(
-        s in SubCategory,
-        preload: [topics: ^topics_query],
-        where: s.id in ^sub_category_id_list,
-        order_by: [desc: s.inserted_at],
-        limit: ^limit,
-        offset: ^offset,
-      )
-
-    Repo.all(query)
+    from(
+      s in SubCategory,
+      preload: [topics: ^topics_query],
+      where: s.id in ^sub_category_id_list,
+      order_by: [desc: s.inserted_at],
+      limit: ^limit,
+      offset: ^offset,
+    ) |> Repo.all
   end
 
   def update_sub_category_title(sub_category_id) do
@@ -239,56 +263,124 @@ defmodule Notebooks.Impl do
     # requester_id
   end
 
-  def delete_sub_category(sub_category_id) do
-    # TODO:
-    # requester_id
-    Repo.get(SubCategory, sub_category_id)
-    |> Repo.delete()
+  def delete_sub_category(%{
+    requester_id: requester_id,
+    sub_category_id: sub_category_id,
+  } = params) do
+    success_fn = (fn -> Repo.get(SubCategory, sub_category_id) |> Repo.delete end)
+    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                operation: :write,
+                notebook_id: notebook_id,
+                requester_id: requester_id,
+                success_fn: success_fn
+              }) end)
+    check_notebook_access_authorization(%{
+      requester_id: requester_id,
+      resource_id: sub_category_id,
+      resource_type: :sub_category,
+    }, success_fn, fail_fn)
   end
 
   # **********************
   # Topic Resource Actions
   # **********************
-  def create_topic(params) do
-    # TODO:
-    # requester_id
-    %Topic{}
-    |> Topic.changeset(params)
-    |> Repo.insert()
+  def create_topic(%{
+    requester_id: requester_id,
+    sub_category_id: sub_category_id,
+    title: title
+  } = params) do
+    success_fn = (fn -> %Topic{} |> Topic.changeset(params) |> Repo.insert end)
+    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                operation: :read,
+                notebook_id: notebook_id,
+                requester_id: requester_id,
+                success_fn: success_fn
+              }) end)
+    check_notebook_access_authorization(%{
+      requester_id: requester_id,
+      resource_id: sub_category_id,
+      resource_type: :sub_category,
+    }, success_fn, fail_fn)
   end
 
-  def list_topics(%{topic_id_list: topic_id_list, limit: limit, offset: offset} = params) do
-    notes_query = from n in Note, select: n.id
-    query = 
-      from(
-        t in Topic,
-        preload: [notes: ^notes_query],
-        where: t.id in ^topic_id_list,
-        order_by: [desc: t.inserted_at],
-        limit: ^limit,
-        offset: ^offset,
-      )
-
-    Repo.all(query)
+  def list_topics(%{
+    requester_id: requester_id,
+    topic_id_list: topic_id_list,
+    limit: limit,
+    offset: offset
+  } = params) when length(topic_id_list) > 0 do
+    success_fn = (fn -> list_topics_query(params) end)
+    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                operation: :read,
+                notebook_id: notebook_id,
+                requester_id: requester_id,
+                success_fn: success_fn
+              }) end)
+    check_notebook_access_authorization(%{
+      requester_id: requester_id,
+      resource_id: Enum.at(topic_id_list, 0),
+      resource_type: :topic,
+    }, success_fn, fail_fn)
   end
   
+  def list_topics(_), do: {:err, "topic_id_list must be greater than 0"}
+  
+  defp list_topics_query(%{topic_id_list: topic_id_list, limit: limit, offset: offset} = params) do
+    notes_query = from n in Note, select: n.id
+    from(
+      t in Topic,
+      preload: [notes: ^notes_query],
+      where: t.id in ^topic_id_list,
+      order_by: [desc: t.inserted_at],
+      limit: ^limit,
+      offset: ^offset,
+    ) |> Repo.all
+  end
+  
+  # TODO: Still on the fence of how I want to handle these update functions...
   def update_topic_title(%{requester_id: requester_id, title: title} = params) do
     # TODO:
   end
-
-  def delete_topic(%{requester_id: requester_id, topic_id: topic_id} = params) do
-    # TODO: 
-    Repo.get(Topic, topic_id)
-    |> Repo.delete()
+  
+  def delete_topic(%{
+    requester_id: requester_id,
+    topic_id: topic_id,
+  } = params) do
+    success_fn = (fn -> Repo.get(Topic, topic_id) |> Repo.delete end)
+    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                operation: :write,
+                notebook_id: notebook_id,
+                requester_id: requester_id,
+                success_fn: success_fn
+              }) end)
+    check_notebook_access_authorization(%{
+      requester_id: requester_id,
+      resource_id: topic_id,
+      resource_type: :topic,
+    }, success_fn, fail_fn)
   end
 
   # *********************
   # Note Resource Actions
   # *********************
-  def create_note(params) do
-    %Note{}
-    |> Note.changeset(params)
-    |> Repo.insert()
+  def create_note(%{
+    requester_id: requester_id,
+    title: title,
+    order: order,
+    topic_id: topic_id
+  } = params) do
+    success_fn = (fn -> %Note{} |> Note.changeset(params) |> Repo.insert end)
+    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                operation: :write,
+                notebook_id: notebook_id,
+                requester_id: requester_id,
+                success_fn: success_fn
+              }) end)
+    check_notebook_access_authorization(%{
+      requester_id: requester_id,
+      resource_id: topic_id,
+      resource_type: :topic,
+    }, success_fn, fail_fn)
   end
   
   def retrieve_note(%{requester_id: requester_id, note_id: note_id} = params) do
@@ -299,44 +391,47 @@ defmodule Notebooks.Impl do
                 requester_id: requester_id,
                 success_fn: success_fn
               }) end)
-    check_notebook_access_authorization(params, success_fn, fail_fn)
+    check_notebook_access_authorization(%{
+      requester_id: requester_id,
+      resource_id: note_id,
+      resource_type: :note,
+    }, success_fn, fail_fn)
   end
   
-  def list_notes(%{note_id_list: note_id_list, limit: limit, offset: offset} = params) do
-    query = 
-      from(
-        n in Note,
-        where: n.id in ^note_id_list,
-        order_by: [desc: n.inserted_at],
-        limit: ^limit,
-        offset: ^offset,
-      )
-
-    Repo.all(query)
+  def list_notes(%{
+    requester_id: requester_id,
+    note_id_list: note_id_list,
+    limit: limit,
+    offset: offset
+  } = params) when length(note_id_list) > 0 do
+    success_fn = (fn -> list_notes_query(params) end)
+    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                operation: :read,
+                notebook_id: notebook_id,
+                requester_id: requester_id,
+                success_fn: success_fn
+              }) end)
+    check_notebook_access_authorization(%{
+      requester_id: requester_id,
+      resource_id: Enum.at(note_id_list, 0),
+      resource_type: :note,
+    }, success_fn, fail_fn)
+  end
+  
+  def list_notes(_params), do: {:err, "note_id_list must be greater than 0"}
+  
+  defp list_notes_query(%{note_id_list: note_id_list, limit: limit, offset: offset} = params) do
+    from(
+      n in Note,
+      where: n.id in ^note_id_list,
+      order_by: [desc: n.inserted_at],
+      limit: ^limit,
+      offset: ^offset,
+    ) |> Repo.all
   end
 
   def update_note_title(%{requester_id: requester_id, note_id: note_id} = params) do
     # TODO
-  end
-  
-  defp check_notebook_access_authorization(%{
-      requester_id: requester_id,
-      note_id: note_id
-    } = params, success_fn, fail_fn) do
-    case retrieve_notes_associated_notebook(%{note_id: note_id}) do
-      [%{notebook_id: notebook_id, owner_id: owner_id}] ->
-        verify_owner_of_resource(%{
-          requester_id: requester_id,
-          owner_id: owner_id,
-          success_fn: success_fn,
-          fail_fn: (fn -> fail_fn.(notebook_id) end)
-        })
-
-      nil ->
-        # TODO: Most ideal error to return?
-        # This is the case where the Notebook doesn't exist.
-        {:error, "UNAUTHORIZED_REQUEST"}
-    end
   end
   
   def update_note_content(
@@ -352,7 +447,11 @@ defmodule Notebooks.Impl do
                   requester_id: requester_id,
                   success_fn: success_fn
                 }) end)
-      check_notebook_access_authorization(params, success_fn, fail_fn)
+      check_notebook_access_authorization(%{
+        requester_id: requester_id,
+        resource_id: note_id,
+        resource_type: :note,
+      }, success_fn, fail_fn)
   end
 
   @doc """
@@ -369,35 +468,29 @@ defmodule Notebooks.Impl do
   def update_note_order(note_id_and_order_list) do
     # TODO
   end
-
-  def delete_note(%{requester_id: requester_id, note_id: note_id} = params) do
-    # TODO
-    Repo.get(Note, note_id)
-    |> Repo.delete()
-  end
   
-  def retrieve_notes_associated_notebook(%{note_id: note_id}) do
-    query =
-      from(
-        n in "notes",
-        where: n.id == ^note_id,
-        join: t in "topics",
-        on: n.topic_id == t.id,
-        join: sc in "sub_categories",
-        on: t.sub_category_id == sc.id,
-        join: nb in "notebooks",
-        on: sc.notebook_id == nb.id,
-        select: %{notebook_id: nb.id, owner_id: nb.owner_id}
-      )
-      
-    Repo.all(query)
+  def delete_note(%{
+    requester_id: requester_id,
+    note_id: note_id,
+  } = params) do
+    success_fn = (fn -> Repo.get(Note, note_id) |> Repo.delete end)
+    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                operation: :write,
+                notebook_id: notebook_id,
+                requester_id: requester_id,
+                success_fn: success_fn
+              }) end)
+    check_notebook_access_authorization(%{
+      requester_id: requester_id,
+      resource_id: note_id,
+      resource_type: :note,
+    }, success_fn, fail_fn)
   end
   
   defp retrieve_and_update_note_content(%{note_id: note_id, content_markdown: content_markdown, content_text: content_text} = params) do
     # TODO: Add updated_at: DateTime.utc_now() // Need to require DateTime in this module
     update_query = from(n in Note, where: n.id == ^note_id, update: [set: [content_markdown: ^content_markdown, content_text: ^content_text]])
     case Repo.update_all(update_query, []) do
-      # This is the success case...
       {1, nil} ->
         {:ok, "Successfully updated the note!"}
         
@@ -412,20 +505,57 @@ defmodule Notebooks.Impl do
   # *****************************
   # Topic & Note Resource Actions
   # *****************************
-  def add_tags(:topic, %{topic_id: topic_id, tags: tags}) do
-    # TODO: Concatenate tags onto the JSONB array in the DB.
+  # TODO: Will I lowercase the user inputted tag strings
+  #       before saving them to the DB... and then Capitalize
+  #       the first letter of every word when displaying them?
+  # Or perhaps this is a non concern....
+  @doc """
+    Success case:
+    {:ok, struct}
+    
+    Error case:
+    {:error, changeset} // W/ validation/contraint errors.
+  """
+  def add_tags(:topic, %{topic_id: topic_id, tags: tags} = params) do
+    topic = Repo.get(Topic, topic_id)
+    set = create_tag_mapset(Enum.concat(topic.tags, tags))
+    Topic.add_tags_changeset(topic, %{tags: MapSet.to_list(set)}) |> Repo.update
   end
 
   def add_tags(:note, %{note_id: note_id, tags: tags}) do
-    # TODO: Concatenate tags onto the JSONB array in the DB.
+    note = Repo.get(Note, note_id)
+    set = create_tag_mapset(Enum.concat(note.tags, tags))
+    Note.add_tags_changeset(note, %{tags: MapSet.to_list(set)}) |> Repo.update
   end
 
   def remove_tags(:topic, %{topic_id: topic_id, tag: tag}) do
-    # TODO: Remove single tag from resource's JSONB array in the DB.
+    topic = Repo.get(Topic, topic_id)
+    set = MapSet.new(topic.tags)
+    case MapSet.member?(set, tag) do
+      true ->
+        set = MapSet.delete(set, tag)
+        Topic.add_tags_changeset(topic, %{tags: MapSet.to_list(set)}) |> Repo.update
+      false ->
+        {:err, "Tag is not in the list of tags."}
+    end 
   end
 
-  def remove_tags(:note, %{topic_id: topic_id, tag: tag}) do
-    # TODO: Remove single tag from resource's JSONB array in the DB.
+  def remove_tags(:note, %{note_id: note_id, tag: tag}) do
+    note = Repo.get(Note, note_id)
+    set = MapSet.new(note.tags)
+    case MapSet.member?(set, tag) do
+      true ->
+        set = MapSet.delete(set, tag)
+        Note.add_tags_changeset(note, %{tags: MapSet.to_list(set)}) |> Repo.update
+      false ->
+        {:err, "Tag is not in the list of tags."}
+    end 
+  end
+  
+  defp create_tag_mapset(tags) do
+    set = Enum.reduce(tags, MapSet.new(), fn tag, acc ->
+      acc = MapSet.put(acc, tag)
+    end)
   end
   
   # ****************************************************
@@ -478,5 +608,110 @@ defmodule Notebooks.Impl do
       _ ->
         {:err, "Oops... Something went wrong."}
     end
+  end
+  
+  defp check_notebook_access_authorization(%{
+    requester_id: requester_id,
+    resource_type: resource_type,
+    resource_id: resource_id
+  } = params, success_fn, fail_fn) do
+    case delegate_notebook_resource_retrieval(resource_type, resource_id) do
+      [%{notebook_id: notebook_id, owner_id: owner_id}] ->
+        verify_owner_of_resource(%{
+          requester_id: requester_id,
+          owner_id: owner_id,
+          success_fn: success_fn,
+          fail_fn: (fn -> fail_fn.(notebook_id) end)
+        })
+
+      nil ->
+        # TODO: Most ideal error to return?
+        # This is the case where the Notebook doesn't exist.
+        {:error, "UNAUTHORIZED_REQUEST"}
+    end
+  end
+  
+  defp delegate_notebook_resource_retrieval(:sub_category, resource_id) do
+    retrieve_sub_categories_associated_notebook(%{note_id: resource_id})
+  end
+  
+  defp delegate_notebook_resource_retrieval(:topic, resource_id) do
+    retrieve_topics_associated_notebook(%{topic_id: resource_id})
+  end
+  
+  defp delegate_notebook_resource_retrieval(:note, resource_id) do
+    retrieve_notes_associated_notebook(%{note_id: resource_id})
+  end
+  
+  defp delegate_notebook_resource_retrieval(:note_timer, resource_id) do
+    retrieve_note_timers_associated_notebook(%{note_id: resource_id})
+  end
+  
+  defp delegate_notebook_resource_retrieval(:notebook, resource_id) do
+    retrieve_associated_notebook(%{notebook_id: resource_id})
+  end
+  
+  #################################
+  # Accessor Functions to Retrieve
+  # a Resource's Associated Notebook
+  #################################
+  def retrieve_note_timers_associated_notebook(%{note_timers_id: note_timers_id}) do
+    from(
+      nt in "note_timerss",
+      where: nt.id == ^note_timers_id,
+      join: n in "notes",
+      on: nt.note_id == n.id,
+      join: t in "topics",
+      on: n.topic_id == t.id,
+      join: sc in "sub_categories",
+      on: t.sub_category_id == sc.id,
+      join: nb in "notebooks",
+      on: sc.notebook_id == nb.id,
+      select: %{notebook_id: nb.id, owner_id: nb.owner_id}
+    ) |> Repo.all
+  end
+  
+  def retrieve_notes_associated_notebook(%{note_id: note_id}) do
+    from(
+      n in "notes",
+      where: n.id == ^note_id,
+      join: t in "topics",
+      on: n.topic_id == t.id,
+      join: sc in "sub_categories",
+      on: t.sub_category_id == sc.id,
+      join: nb in "notebooks",
+      on: sc.notebook_id == nb.id,
+      select: %{notebook_id: nb.id, owner_id: nb.owner_id}
+    ) |> Repo.all
+  end
+  
+  def retrieve_topics_associated_notebook(%{topic_id: topic_id}) do
+    from(
+      t in "topics",
+      where: t.id == ^topic_id,
+      join: sc in "sub_categories",
+      on: t.sub_category_id == sc.id,
+      join: nb in "notebooks",
+      on: sc.notebook_id == nb.id,
+      select: %{notebook_id: nb.id, owner_id: nb.owner_id}
+    ) |> Repo.all
+  end
+  
+  def retrieve_sub_categories_associated_notebook(%{sub_category_id: sub_category_id}) do
+    from(
+      sc in "sub_categories",
+      where: sc.id == ^sub_category_id,
+      join: nb in "notebooks",
+      on: sc.notebook_id == nb.id,
+      select: %{notebook_id: nb.id, owner_id: nb.owner_id}
+    ) |> Repo.all
+  end
+  
+  def retrieve_associated_notebook(%{notebook_id: notebook_id}) do
+    from(
+      nb in "notebooks",
+      where: nb.id == ^notebook_id,
+      select: %{notebook_id: nb.id, owner_id: nb.owner_id}
+    ) |> Repo.all
   end
 end

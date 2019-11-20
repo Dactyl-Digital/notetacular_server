@@ -41,7 +41,7 @@ defmodule Backend.Mixfile do
       {:bamboo, "~> 1.3"},
       {:cors_plug, "~> 2.0"},
       {:dbstore, path: "../dbstore"},
-      {:auth, path: "../auth"}
+      {:accounts, path: "../accounts"}
     ]
   end
 end

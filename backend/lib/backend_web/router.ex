@@ -39,6 +39,8 @@ defmodule BackendWeb.Router do
     # The key is that the helper function will be based on the controller name
     # i.e. Backend.Router.Helpers.auth_path(Backend.Endpoint, :verify_email, %{} = params)
     get("/verify-email", AuthController, :verify_email)
+    
+    post("/signup", AuthController, :signup)
   end
 
   scope "/admin", BackendWeb do
