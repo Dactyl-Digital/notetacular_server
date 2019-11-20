@@ -4,7 +4,7 @@ defmodule Accounts.Impl do
   """
   import Ecto.Query
   alias Ecto.Changeset
-  alias Dbstore.{Repo, User, Credential, Permissions}
+  alias Dbstore.{Repo, Helpers, User, Credential, Permissions}
 
   # Key for hashing the user's remember_token TODO: (This is duplicated in backend/temp/auth_plug.ex)
   # mix phx.gen.secret [length]
@@ -23,20 +23,27 @@ defmodule Accounts.Impl do
   @login_success_message "You've successfully logged in!"
   @something_went_wrong_message "Oops... Something went wrong. Please try again."
   @permission_not_found_message "Permission not found"
-
-  # Introduced this to provide "PIZZA_APPLICATION_MNAKER" to tests
-  # And I suppose this is how any admins introduced into the prod version
-  # will be created... But I still wanted to do more research to determine
-  # if this is really the best way to go about it.
-  def signup_user(params) do
-    IO.puts("params in signup_user")
-    IO.inspect(params)
+  
+  def create_user(%{email: email, username: username, password: password}) do
+    %User{}
+    |> User.changeset(%{
+        username: username,
+        credentials: %{
+          email: email,
+          password: password
+        },
+        memberships: %{
+          subscribed_until: Timex.now() |> Timex.shift(days: 31)
+        }
+      })
+    |> Repo.insert
+    |> Helpers.handle_creation_result
   end
   
   def retrieve_users_credentials_by_email(email), do: Repo.get_by(Credential, email: email)
   
-  def update_user_token(:hashed_remember_token, user_id, token) do
-    %User{id: user_id}
+  def update_user_token(:hashed_remember_token, id, token) do
+    %User{id: id}
     |> Changeset.cast(
       %{hashed_remember_token: token},
       [:hashed_remember_token]
@@ -44,11 +51,16 @@ defmodule Accounts.Impl do
     |> Repo.update()
   end
   
-  def update_user_token(:hashed_email_verification_token, email, token) do
-    %Credential{email: email}
+  def update_user_token(:hashed_email_verification_token, id, token) do
+    expiry = Timex.now() |> Timex.shift(hours: 24)
+      
+    %Credential{id: id}
     |> Changeset.cast(
-      %{hashed_email_verification_token: token},
-      [:hashed_email_verification_token]
+      %{
+        hashed_email_verification_token: token,
+        email_verification_token_expiry: expiry
+      },
+      [:hashed_email_verification_token, :email_verification_token_expiry]
     )
     |> Repo.update()
   end
