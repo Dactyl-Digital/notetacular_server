@@ -3,7 +3,7 @@ defmodule Dbstore.Repo.Migrations.CreateNoteTimers do
 
   def change do
     create table("note_timers") do
-      add(:timer, :time, null: false)
+      add(:elapsed_seconds, :integer, null: false)
       add(:description, :string)
       add(:timer_count, :integer, null: false)
       add(:note_id, references(:notes), on_delete: :delete_all, null: false)

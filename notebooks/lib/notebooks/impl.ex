@@ -565,25 +565,12 @@ defmodule Notebooks.Impl do
   # NoteTimer Resource Actions
   # **************************
   def create_note_timer(%{
-      requester_id: requester_id,
-      note_id: note_id
-    } = params) do
-      {:ok, time} = Time.new(0, 0, 0, 0)
+    requester_id: requester_id,
+    timer_count: timer_count,
+    note_id: note_id
+  } = params) do
       success_fn = (fn ->
-       %NoteTimer{}
-       |> NoteTimer.changeset(%{
-            timer: time,
-            timer_count: 1,
-            note_id: note_id
-          })
-       |> Repo.insert
-        # Repo.insert_all("note_timers", [[
-        #   timer: time,
-        #   timer_count: 1,
-        #   note_id: note_id,
-        #   inserted_at: DateTime.utc_now(),
-        #   updated_at: DateTime.utc_now(),
-        # ]], returning: [:id])
+      %NoteTimer{} |> NoteTimer.changeset(Map.put(params, :elapsed_seconds, 0)) |> Repo.insert
       end)
       fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
                   operation: :write,

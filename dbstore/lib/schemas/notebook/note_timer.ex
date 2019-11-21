@@ -5,7 +5,7 @@ defmodule Dbstore.NoteTimer do
 
   schema "note_timers" do
     # NOTE: timer is the millisecond representation of the time elasped thus far.
-    field(:timer, :time)
+    field(:elapsed_seconds, :integer)
     field(:description, :string)
     field(:timer_count, :integer)
     
@@ -15,7 +15,7 @@ defmodule Dbstore.NoteTimer do
   
   def changeset(note_timer, params \\ %{}) do
     note_timer
-    |> cast(params, [:timer, :timer_count, :note_id])
-    |> validate_required([:timer, :timer_count, :note_id])
+    |> cast(params, [:elapsed_seconds, :timer_count, :note_id])
+    |> validate_required([:elapsed_seconds, :timer_count, :note_id])
   end
 end

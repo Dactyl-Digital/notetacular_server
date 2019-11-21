@@ -171,7 +171,8 @@ defmodule NotebooksTest do
     test "create_note_timer/1 inserts a note_timer into the DB", %{user_id: user_id, note1_id: note1_id} do
       note_timer = Notebooks.create_note_timer(%{
         requester_id: user_id,
-        note_id: note1_id
+        note_id: note1_id,
+        timer_count: 1
       })
       IO.puts("note_timer")
       IO.inspect(note_timer)
