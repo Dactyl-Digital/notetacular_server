@@ -25,4 +25,11 @@ defmodule Dbstore.User do
     |> unique_constraint(:username)
     |> unsafe_validate_unique([:username], Dbstore.Repo, message: "That username is already taken")
   end
+  
+  def activate_account_changeset(user, params \\ %{}) do
+    user
+    |> cast(params, [:account_active])
+    |> cast_assoc(:credentials, with: &Credential.activate_account_changeset/2)
+    |> validate_required([:account_active, :credentials])
+  end
 end

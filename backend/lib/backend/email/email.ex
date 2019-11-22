@@ -17,13 +17,15 @@ defmodule Backend.Email do
   """
   def deliver_email_verification_email(email) do
     with {:ok, {token, hashed_token}} <- Auth.create_hashed_email_verification_token(),
-         %Credential{id: id} = credential <- Accounts.retrieve_users_credentials_by_email(email),
+         %Credential{id: id} <- Accounts.retrieve_users_credentials_by_email(email),
          {:ok, _} <- Accounts.update_user_token(:hashed_email_verification_token, id, hashed_token)
       do
-       create_email_verification_email(email, token) |> Backend.Mailer.deliver_now(response: true)
+        create_email_verification_email(email, token) |> Backend.Mailer.deliver_now(response: true)
       else
-       nil -> {:err, "UNAUTHORIZED_REQUEST"}
-       {:err, _} -> {:err, "Failed to save hashed_email_verification_token to the database."}
+       nil -> 
+        {:err, "UNAUTHORIZED_REQUEST"}
+       {:err, _} ->
+        {:err, "Failed to save hashed_email_verification_token to the database."}
       end
   end
   
@@ -35,18 +37,17 @@ defmodule Backend.Email do
       email: email,
       email_verification_token: email_verification_token,
   }) do
-    base_email
+    base_email()
     |> to(email)
     |> from(@sender_email)
     |> subject("Notastical - Please verify your email")
     |> assign(:email, email)
     |> assign(:email_verification_token, email_verification_token)
     |> render("email_verification.html")
-    |> IO.inspect
   end
 
-  def base_email() do
-    new_email
+  def base_email do
+    new_email()
     |> put_html_layout({Backend.EmailView, "email.html"})
   end
 end

@@ -44,6 +44,7 @@ defmodule Notebooks do
   # NoteTimer Resource Actions
   # **************************
   defdelegate create_note_timer(params), to: Notebooks.Impl
+  defdelegate update_note_timer(params), to: Notebooks.Impl
   
   # **************************************
   # For Internal Usage within Context only

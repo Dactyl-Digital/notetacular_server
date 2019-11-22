@@ -29,6 +29,12 @@ defmodule Dbstore.Credential do
     |> put_pass_hash
   end
   
+  def activate_account_changeset(credential, params \\ %{}) do
+    credential
+    |> cast(params, [:id, :email_verification_token_expiry, :hashed_email_verification_token])
+    # |> validate_required([:id, :email_verification_token_expiry, :hashed_email_verification_token])
+  end
+  
   defp put_pass_hash(changeset = %Ecto.Changeset{valid?: true, changes: %{password: password}}) do
     put_change(
       changeset,

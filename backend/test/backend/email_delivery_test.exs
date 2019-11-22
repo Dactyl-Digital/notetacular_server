@@ -4,7 +4,8 @@ defmodule Backend.EmailDeliveryTest do
   alias Backend.Email
 
   test "sends an email verification email" do
-    email = Email.create_email_verification_email("test@test.com", "test_token") |> Backend.Mailer.deliver_now()
+    {_, {:delivered_email, email}} =
+      Email.create_email_verification_email("test@test.com", "test_token") |> Backend.Mailer.deliver_now(response: true)
     assert_delivered_email email
   end
 end

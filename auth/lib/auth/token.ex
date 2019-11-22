@@ -1,7 +1,7 @@
 defmodule Auth.Token do
   
   alias Ecto.Changeset
-  alias Dbstore.User
+  alias Dbstore.{Repo, User, Credential}
   
   # TODO: Look into ideal bytes to use...
   @bytes 255
@@ -52,9 +52,10 @@ defmodule Auth.Token do
     %{hashed_email_verification_token: stored_hashed_email_verification_token},
     email_verification_token
   ) do
-    {:ok, {_remember_token, freshly_hashed_token}} =
+    {:ok, {_email_verification_token, freshly_hashed_token}} =
       email_verification_token
       |> Auth.hash_token(fn (token) -> hmac_email_verification_token(token) end)
+      
       stored_hashed_email_verification_token === freshly_hashed_token
   end
   
@@ -91,16 +92,48 @@ defmodule Auth.Token do
     {:ok, {token, hashed_token}}
   end
   
-  def verify_email(%{"token" => token, "email" => email}) do
+  def verify_email(%{"email_verification_token" => email_verification_token, "email" => email}) do
     # 1. Fetch credential resource from database via email.
+    credentials = retrieve_users_credentials_by_email(email)
     # 2. Verify that email_verification_token_expiry has not elapsed.
-    # 3. Hash the token received in controller params and compare
-    #    it to the hashed_email_verification_token retrieved from the
-    #    credential resource from the DB.
-    # 4. If the two match, then set the credential's email_token fields to null
-    #    and switch the user's account_active to true.
-    
-    # :error case
-    # UNAUTHORIZED_REQUEST
+    # NOTE: The result will be positive if the first date/time comes after the second.
+    case Timex.diff(credentials.email_verification_token_expiry, Timex.now()) |> expiry_elapsed? do
+      false ->
+        # 3. Hash the token received in controller params and compare
+        #    it to the hashed_email_verification_token retrieved from the
+        #    credential resource from the DB.
+        case token_matches?(:email_verification_token, credentials, email_verification_token) do
+          true ->
+          # 4. If the two match, then set the credential's email_token fields to null
+          #    and switch the user's account_active to true.
+            {:ok, %User{account_active: account_active}} =
+              Repo.get(User, credentials.user_id)
+                |> Repo.preload([:credentials])
+                |> User.activate_account_changeset(%{
+                     account_active: true,
+                     credentials: %{
+                       id: credentials.id,
+                       hashed_email_verification_token: nil,
+                       email_verification_token_expiry: nil
+                     }
+                   })
+                |> Repo.update
+            {:ok, %{account_active: account_active}}
+          false ->
+            {:err, "UNAUTHORIZED_REQUEST"}
+        end
+      true ->
+        {:err, "UNAUTHORIZED_REQUEST"}
+    end
   end
+  
+  def expiry_elapsed?(diff) when diff > 0 do
+    false
+  end
+  
+  def expiry_elapsed?(diff) when diff < 0 do
+    true
+  end
+  
+  defp retrieve_users_credentials_by_email(email), do: Repo.get_by(Credential, email: email)
 end

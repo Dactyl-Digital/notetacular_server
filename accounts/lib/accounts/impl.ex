@@ -53,7 +53,6 @@ defmodule Accounts.Impl do
   
   def update_user_token(:hashed_email_verification_token, id, token) do
     expiry = Timex.now() |> Timex.shift(hours: 24)
-      
     %Credential{id: id}
     |> Changeset.cast(
       %{

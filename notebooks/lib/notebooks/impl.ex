@@ -17,7 +17,11 @@ defmodule Notebooks.Impl do
   @something_went_wrong_message "Oops... Something went wrong. Please try again."
   @permission_not_found_message "Permission not found"
 
-  # TODO:
+  # TODO (After the core feature set has completely
+  # been implemented, then I can add the notebook_shareuser
+  # functionality.
+  # Otherwise, it's not an ideal time to implement this feature
+  # until the above is taken care of.):
   # Implement creating updated_resources table in the DB
   # Every time a notebook_shareuser makes an update, create
   # an updated_resource resource to enable potential rollback.
@@ -570,7 +574,7 @@ defmodule Notebooks.Impl do
     note_id: note_id
   } = params) do
       success_fn = (fn ->
-      %NoteTimer{} |> NoteTimer.changeset(Map.put(params, :elapsed_seconds, 0)) |> Repo.insert
+        %NoteTimer{} |> NoteTimer.changeset(Map.put(params, :elapsed_seconds, 0)) |> Repo.insert
       end)
       fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
                   operation: :write,
@@ -582,6 +586,34 @@ defmodule Notebooks.Impl do
         requester_id: requester_id,
         resource_id: note_id,
         resource_type: :note,
+      }, success_fn, fail_fn)
+  end
+  
+  @doc """
+  updates may be a map which contains either:
+  %{
+    elapsed_seconds: elapsed_seconds,
+    description: description
+  }
+  """
+  def update_note_timer(%{
+    requester_id: requester_id,
+    note_timer_id: note_timer_id,
+    updates: updates
+  } = params) do
+      success_fn = (fn ->
+        %NoteTimer{} |> NoteTimer.changeset(updates) |> Repo.insert
+      end)
+      fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                  operation: :write,
+                  notebook_id: notebook_id,
+                  requester_id: requester_id,
+                  success_fn: success_fn
+                }) end)
+      check_notebook_access_authorization(%{
+        requester_id: requester_id,
+        resource_id: note_timer_id,
+        resource_type: :note_timer,
       }, success_fn, fail_fn)
   end
   
