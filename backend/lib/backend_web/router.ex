@@ -57,6 +57,10 @@ defmodule BackendWeb.Router do
     # Notebook Controllers
     post("/notebook", NotebookController, :create_notebook)
     get("/notebook", NotebookController, :list_notebooks)
+
+    # Sub Category Controllers
+    post("sub_category", SubCategoryController, :create_sub_category)
+    get("sub_category", SubCategoryController, :list_sub_categories)
   end
 
   scope "/admin", BackendWeb do

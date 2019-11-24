@@ -2,15 +2,6 @@ defmodule BackendWeb.NotebookControllerTest do
   use BackendWeb.ConnCase
   alias Dbstore.{Repo, User, Notebook}
 
-  setup do
-    on_exit(fn ->
-      Repo.delete_all("notebooks")
-      Repo.delete_all("credentials")
-      Repo.delete_all("memberships")
-      Repo.delete_all("users")
-    end)
-  end
-
   def setup_user(context) do
     {:ok, user} =
       %User{}
@@ -41,6 +32,15 @@ defmodule BackendWeb.NotebookControllerTest do
 
     context = Map.put(context, :user, user)
     {:ok, context}
+  end
+
+  setup do
+    on_exit(fn ->
+      Repo.delete_all("notebooks")
+      Repo.delete_all("credentials")
+      Repo.delete_all("memberships")
+      Repo.delete_all("users")
+    end)
   end
 
   setup_all do

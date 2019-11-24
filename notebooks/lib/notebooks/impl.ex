@@ -47,11 +47,11 @@ defmodule Notebooks.Impl do
     [%Notebook{}, %Notebook{}]
   """
   def list_notebooks(%{owner_id: owner_id, limit: limit, offset: offset} = params) do
-    sub_categories_query = from s in SubCategory, select: s.id
+    sub_categories_query = from s in SubCategory, select: s.id, order_by: s.updated_at
     from(n in Notebook,
       preload: [sub_categories: ^sub_categories_query],
       where: n.owner_id == ^owner_id,
-      order_by: :inserted_at,
+      order_by: n.updated_at,
       limit: ^limit,
       offset: ^offset,
     ) |> Repo.all
@@ -101,13 +101,13 @@ defmodule Notebooks.Impl do
   upon clicking on a Notebook in the UI.
   """
   def list_shared_notebooks(%{user_id: user_id, limit: limit, offset: offset} = params) do
-    sub_categories_query = from s in SubCategory, select: s.id
+    sub_categories_query = from s in SubCategory, select: s.id, order_by: [desc: s.updated_at]
     from(n in Notebook,
       preload: [sub_categories: ^sub_categories_query],
       join: nsu in "notebook_shareusers",
       on: nsu.user_id == ^user_id,
       where: n.id == nsu.notebook_id,
-      order_by: [desc: n.inserted_at],
+      order_by: [desc: n.updated_at],
       limit: ^limit,
       offset: ^offset,
     ) |> Repo.all
@@ -259,12 +259,12 @@ defmodule Notebooks.Impl do
   def list_sub_categories(_), do: {:error, "sub_category_id_list must be greater than 0"}
 
   defp list_sub_categories_query(%{sub_category_id_list: sub_category_id_list, limit: limit, offset: offset} = params) do
-    topics_query = from t in Topic, select: t.id
+    topics_query = from t in Topic, select: t.id, order_by: [desc: t.updated_at]
     from(
       s in SubCategory,
       preload: [topics: ^topics_query],
       where: s.id in ^sub_category_id_list,
-      order_by: [desc: s.inserted_at],
+      order_by: [desc: s.updated_at],
       limit: ^limit,
       offset: ^offset,
     ) |> Repo.all
@@ -338,12 +338,12 @@ defmodule Notebooks.Impl do
   def list_topics(_), do: {:error, "topic_id_list must be greater than 0"}
 
   defp list_topics_query(%{topic_id_list: topic_id_list, limit: limit, offset: offset} = params) do
-    notes_query = from n in Note, select: n.id
+    notes_query = from n in Note, select: n.id, order_by: [desc: n.updated_at]
     from(
       t in Topic,
       preload: [notes: ^notes_query],
       where: t.id in ^topic_id_list,
-      order_by: [desc: t.inserted_at],
+      order_by: [desc: t.updated_at],
       limit: ^limit,
       offset: ^offset,
     ) |> Repo.all
@@ -436,7 +436,7 @@ defmodule Notebooks.Impl do
     from(
       n in Note,
       where: n.id in ^note_id_list,
-      order_by: [desc: n.inserted_at],
+      order_by: [desc: n.updated_at],
       limit: ^limit,
       offset: ^offset,
     ) |> Repo.all

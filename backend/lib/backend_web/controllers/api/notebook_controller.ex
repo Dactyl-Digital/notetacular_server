@@ -52,15 +52,5 @@ defmodule BackendWeb.NotebookController do
       _ ->
         conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
     end
-
-    # IO.puts("list_notebooks returns:")
-
-    # IO.inspect(
-    #   Notebooks.list_notebooks(%{limit: limit, offset: offset, owner_id: current_user.user_id})
-    # )
-
-    # conn
-    # |> put_status(200)
-    # |> json(%{message: "Successfully listed notebooks!"})
   end
 end
