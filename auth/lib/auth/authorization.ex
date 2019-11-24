@@ -9,11 +9,11 @@ defmodule Auth.Authorization do
 
   def check_authorization(nil, _), do: {:error, "No user session retrieved from conn."}
 
-  def check_authorization(%{expiry: expiry} = params, fetch_user_fn) do
+  def check_authorization(%{expiry: expiry} = params, fetch_crendential_fn) do
     Timex.now()
     |> DateTime.to_unix()
     |> check_expiry(expiry)
-    |> fetch_user(params, fetch_user_fn)
+    |> fetch_crendential(params, fetch_crendential_fn)
     |> auth_check()
   end
 
@@ -27,23 +27,27 @@ defmodule Auth.Authorization do
     end
   end
 
-  defp fetch_user({:ok, "Valid session"}, %{username: username, remember_token: remember_token}, fetch_user_fn) do
-    # TODO: Remove this comment , but implement this function in the Accounts context: case Accounts.retrieve_user_by_username(username) do
-    case fetch_user_fn.(username) do
-      user ->
-        {:ok, {user, remember_token}}
+  defp fetch_crendential(
+         {:ok, "Valid session"},
+         %{credential_id: credential_id, remember_token: remember_token},
+         fetch_credential_fn
+       ) do
+    # TODO: Remove this comment , but implement this function in the Accounts context: case Accounts.retrieve_credentials_by_id(id) do
+    case fetch_credential_fn.(credential_id) do
+      credential ->
+        {:ok, {credential, remember_token}}
 
       nil ->
         {:error, "Session cleared due to being unable to find user by username."}
     end
   end
-  
-  defp fetch_user({:error, msg}, _params, _fetch_user_fn), do: {:error, msg}
 
-  defp auth_check({:ok, {user, remember_token}}) do
-    case Auth.token_matches?(:remember_token, user, remember_token) do
+  defp fetch_crendential({:error, msg}, _params, _fetch_crendential_fn), do: {:error, msg}
+
+  defp auth_check({:ok, {credential, remember_token}}) do
+    case Auth.token_matches?(:remember_token, credential, remember_token) do
       true ->
-        {:ok, user}
+        {:ok, %{user_id: credential.user_id}}
 
       false ->
         {:error, "Remember token doesn't match hashed remember token"}

@@ -4,6 +4,9 @@ defmodule BackendWeb.Router do
   pipeline :test do
     plug(CORSPlug, origin: "*")
     plug(:accepts, ["json"])
+    plug(:fetch_session)
+    plug(:protect_from_forgery)
+    plug(:put_secure_browser_headers)
   end
 
   pipeline :api do
@@ -18,11 +21,17 @@ defmodule BackendWeb.Router do
     IO.inspect(origin)
     plug(CORSPlug, origin: origin)
     plug(:accepts, ["json"])
+    plug(:fetch_session)
+    plug(:protect_from_forgery)
+    plug(:put_secure_browser_headers)
   end
 
   pipeline :admin do
     plug(CORSPlug, origin: "http://localhost:8000")
     plug(:accepts, ["json"])
+    plug(:fetch_session)
+    plug(:protect_from_forgery)
+    plug(:put_secure_browser_headers)
   end
 
   scope "/test", BackendWeb do
@@ -35,14 +44,18 @@ defmodule BackendWeb.Router do
     pipe_through(:api)
 
     get("/test", TestApiController, :test)
-    
-    get("/csrf", UserController, :csrf)
+
+    # Auth Controllers
+    get("/csrf", AuthController, :csrf)
     # Usage in the email template which will be sent to user:
     # The key is that the helper function will be based on the controller name
     # i.e. Backend.Router.Helpers.auth_path(Backend.Endpoint, :verify_email, %{} = params)
     get("/verify-email", AuthController, :verify_email)
-    
     post("/signup", AuthController, :signup)
+    post("/login", AuthController, :login)
+
+    # Notebook Controllers
+    post("/notebook", NotebookController, :create_notebook)
   end
 
   scope "/admin", BackendWeb do

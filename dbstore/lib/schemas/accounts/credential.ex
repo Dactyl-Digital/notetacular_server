@@ -1,7 +1,7 @@
 defmodule Dbstore.Credential do
   use Ecto.Schema
   import Ecto.Changeset
-  
+
   # TODO: Use mix phx.gen.secret..
   # Actually... this needs to be stored in the DB.
   # Read the post on handling Password salts securely and handle this properly later.
@@ -14,11 +14,11 @@ defmodule Dbstore.Credential do
     field(:hashed_remember_token, :string)
     field(:email_verification_token_expiry, :date)
     field(:hashed_email_verification_token, :string)
-    
+
     timestamps()
     belongs_to(:users, Dbstore.User, foreign_key: :user_id)
   end
-  
+
   def changeset(credential, params \\ %{}) do
     credential
     |> cast(params, [:email, :password])
@@ -28,13 +28,22 @@ defmodule Dbstore.Credential do
     |> unique_constraint(:email)
     |> put_pass_hash
   end
-  
+
+  @doc """
+    Used for the purpose of seeting the email_verification_token_expiry and hashed_email_verification_token
+    fields to nil.
+  """
   def activate_account_changeset(credential, params \\ %{}) do
     credential
     |> cast(params, [:id, :email_verification_token_expiry, :hashed_email_verification_token])
-    # |> validate_required([:id, :email_verification_token_expiry, :hashed_email_verification_token])
   end
-  
+
+  def add_hashed_remember_token_changeset(credential, params \\ %{}) do
+    credential
+    |> cast(params, [:hashed_remember_token])
+    |> validate_required([:hashed_remember_token])
+  end
+
   defp put_pass_hash(changeset = %Ecto.Changeset{valid?: true, changes: %{password: password}}) do
     put_change(
       changeset,

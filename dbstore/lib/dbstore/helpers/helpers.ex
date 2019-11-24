@@ -1,6 +1,6 @@
 defmodule Dbstore.Helpers do
   alias Ecto.Changeset
-  
+
   def handle_creation_result({:ok, resource}), do: {:ok, resource}
 
   @doc """
@@ -23,7 +23,7 @@ defmodule Dbstore.Helpers do
         |> format_error(msg, opts)
       end)
 
-    {:err, errors}
+    {:error, errors}
   end
 
   # TODO: this logic (format_error) is duplicated in /accounts/lib/accounts/impl.ex

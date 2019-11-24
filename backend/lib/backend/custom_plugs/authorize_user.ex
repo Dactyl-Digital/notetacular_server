@@ -1,26 +1,38 @@
 defmodule Backend.AuthPlug do
+  # use BackendWeb, :controller
   import Plug.Conn
   alias Accounts
   alias Auth
-  alias Backend.Helpers
-  
+  # alias Backend.Helpers
+
   def authorize_user(conn, _opts) do
-    get_session(conn, :session_token)
-    |> Auth.check_authorization(fn username -> Accounts.retrieve_user_by_username(username) end)
+    IO.puts("in authorize_user/2")
+
+    get_session(conn, :session_data)
+    |> IO.inspect()
+    |> Auth.check_authorization(fn id -> Accounts.retrieve_credentials_by_id(id) end)
+    |> IO.inspect()
     |> assign_user_to_conn(conn)
   end
-  
-  defp assign_user_to_conn({:ok, user}, conn), do: conn |> set_session(user)
+
+  defp assign_user_to_conn({:ok, %{user_id: _id} = current_user}, conn),
+    do: conn |> set_session(current_user)
+
   defp assign_user_to_conn({:error, _msg}, conn), do: conn |> clean_session()
-  
-  defp set_session(conn, user), do: conn |> assign(:current_user, user.username)
+
+  defp set_session(conn, current_user), do: conn |> assign(:current_user, current_user)
 
   # Prefer this... but it seems as though there's a decent amount of coupling
   # Especially since I wanted to move this plug into a separate app to facilitate reuse...
   defp clean_session(conn) do
+    IO.puts("cleaning session")
+
     conn
-    |> delete_session(:session_token)
+    |> delete_session(:session_data)
     |> assign(:current_user, nil)
-    |> Helpers.send_client_response(400, %{message: "Invalid session"})
+    |> put_status(400)
+    |> Phoenix.Controller.json(%{message: "Invalid session"})
+    |> IO.inspect()
+    |> halt
   end
 end

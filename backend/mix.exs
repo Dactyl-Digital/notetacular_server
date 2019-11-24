@@ -6,9 +6,9 @@ defmodule Backend.Mixfile do
       app: :backend,
       version: "0.0.1",
       elixir: "~> 1.4",
-      elixirc_paths: elixirc_paths(Mix.env),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers,
-      start_permanent: Mix.env == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
+      compilers: [:phoenix, :gettext] ++ Mix.compilers(),
+      start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
   end
@@ -19,13 +19,13 @@ defmodule Backend.Mixfile do
   def application do
     [
       mod: {Backend.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :dbstore, :accounts]
     ]
   end
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_),     do: ["lib"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Specifies your project dependencies.
   #
@@ -41,7 +41,8 @@ defmodule Backend.Mixfile do
       {:bamboo, "~> 1.3"},
       {:cors_plug, "~> 2.0"},
       {:dbstore, path: "../dbstore"},
-      {:accounts, path: "../accounts"}
+      {:accounts, path: "../accounts"},
+      {:notebooks, path: "../notebooks"}
     ]
   end
 end
