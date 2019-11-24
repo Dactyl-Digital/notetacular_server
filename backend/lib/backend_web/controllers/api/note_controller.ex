@@ -20,8 +20,11 @@ defmodule BackendWeb.NoteController do
              topic_id: topic_id
            }) do
       conn
-      |> put_status(200)
-      |> json(%{message: "Successfully created note!"})
+      |> put_status(201)
+      # TODO: Suppose I should just be returning the resource's id for
+      # Notebook, SubCategory, and Topic resources as well... to facilitate
+      # the update controller actions.
+      |> json(%{message: "Successfully created note!", id: note.id})
     else
       {:error, errors} ->
         conn |> put_status(400) |> json(%{errors: errors})
@@ -58,6 +61,34 @@ defmodule BackendWeb.NoteController do
         }
       })
     else
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
+
+  def update_note_content(conn, %{
+        "note_id" => note_id,
+        "content_markdown" => content_markdown,
+        "content_text" => content_text
+      }) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, "Successfully updated the note!"} <-
+           Notebooks.update_note_content(%{
+             requester_id: current_user.user_id,
+             note_id: note_id,
+             content_markdown: content_markdown,
+             content_text: content_text
+           }) do
+      conn
+      |> put_status(200)
+      |> json(%{
+        message: "Successfully updated the note!"
+      })
+    else
+      {:error, "Unable to retrieve the note."} ->
+        conn |> put_status(400) |> json(%{message: "Unable to retrieve the note."})
+
       _ ->
         conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
     end

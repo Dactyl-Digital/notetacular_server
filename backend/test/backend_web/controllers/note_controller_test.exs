@@ -157,5 +157,49 @@ defmodule BackendWeb.NoteControllerTest do
       # TODO: FIgure out why order_by isn't doing shit... Otherwise this test is finished.
       # assert [%{"title" => "sub_category2"}, %{"title" => "sub_category1"}] = topics
     end
+
+    test "PUT /api/note/content updates a note with the provided note_content", %{
+      conn: conn,
+      user: user,
+      topic_id_list: topic_id_list
+    } do
+      conn = post(conn, "/api/login", %{username: "testuser", password: "testpassword"})
+
+      conn =
+        post(conn, "/api/note", %{
+          title: "note1",
+          order: 1,
+          topic_id: Enum.at(topic_id_list, 0)
+        })
+
+      assert %{"message" => "Successfully created note!", "id" => id} = json_response(conn, 201)
+
+      conn =
+        put(conn, "/api/note/content", %{
+          note_id: id,
+          content_markdown: %{text: "Here is some test text."},
+          content_text: "Here is some test text."
+        })
+
+      assert %{
+               "message" => "Successfully updated the note!"
+             } = json_response(conn, 200)
+
+      # Retrieving note from DB to verify that updates were persisted.
+      [note] =
+        Notebooks.list_notes(%{
+          requester_id: user.id,
+          note_id_list: [id],
+          limit: 20,
+          offset: 0
+        })
+
+      assert id === note.id
+
+      assert %{
+               content_markdown: %{"text" => "Here is some test text."},
+               content_text: "Here is some test text."
+             } = note
+    end
   end
 end

@@ -449,8 +449,8 @@ defmodule Notebooks.Impl do
     # TODO
   end
 
-  def update_note_content(
-    %{requester_id: requester_id,
+  def update_note_content(%{
+      requester_id: requester_id,
       note_id: note_id,
       content_markdown: content_markdown,
       content_text: content_text
@@ -510,7 +510,7 @@ defmodule Notebooks.Impl do
         {:ok, "Successfully updated the note!"}
 
       {_, nil} ->
-        {:error, "Unable to fetch note."}
+        {:error, "Unable to retrieve the note."}
 
       _ ->
         {:error, "Oops, something went wrong."}

@@ -69,6 +69,7 @@ defmodule BackendWeb.Router do
     # Note Controllers
     post("/note", NoteController, :create_note)
     get("/note", NoteController, :list_notes)
+    put("/note/content", NoteController, :update_note_content)
   end
 
   scope "/admin", BackendWeb do
