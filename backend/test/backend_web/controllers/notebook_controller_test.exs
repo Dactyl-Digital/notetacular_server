@@ -2,13 +2,14 @@ defmodule BackendWeb.NotebookControllerTest do
   use BackendWeb.ConnCase
   alias Dbstore.{Repo, User, Notebook}
 
-  # setup do
-  #   on_exit(fn ->
-  #     Repo.delete_all("credentials")
-  #     Repo.delete_all("memberships")
-  #     Repo.delete_all("users")
-  #   end)
-  # end
+  setup do
+    on_exit(fn ->
+      Repo.delete_all("notebooks")
+      Repo.delete_all("credentials")
+      Repo.delete_all("memberships")
+      Repo.delete_all("users")
+    end)
+  end
 
   def setup_user(context) do
     {:ok, user} =
@@ -72,11 +73,20 @@ defmodule BackendWeb.NotebookControllerTest do
       assert %{"message" => "Successfully created notebook!"} === json_response(conn, 200)
     end
 
-    # test "GET /api/notebooks creates a notebook with the user's id as the owner_id", %{conn: conn} do
-    #   conn = post(conn, "/api/login", %{username: "testuser", password: "testpassword"})
-    #   conn = post(conn, "/api/notebook", %{title: "notebook1"})
+    test "GET /api/notebooks lists a user's own notebooks", %{conn: conn, user: user} do
+      conn = post(conn, "/api/login", %{username: "testuser", password: "testpassword"})
+      conn = post(conn, "/api/notebook", %{title: "notebook1"})
+      conn = post(conn, "/api/notebook", %{title: "notebook2"})
+      conn = get(conn, "/api/notebook?limit=2&offset=0", %{})
 
-    #   assert %{"message" => "Successfully created notebook!"} === json_response(conn, 200)
-    # end
+      assert %{
+               "message" => "Successfully listed notebooks!",
+               "data" => %{
+                 "notebooks" => notebooks
+               }
+             } = json_response(conn, 200)
+
+      assert Kernel.length(notebooks) === 2
+    end
   end
 end

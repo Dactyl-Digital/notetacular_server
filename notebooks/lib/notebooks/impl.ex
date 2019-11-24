@@ -42,6 +42,10 @@ defmodule Notebooks.Impl do
 
   # TODO: Need to create a test that ensures a list of sub_category_ids is on
   #       the returned resource.
+  @doc """
+    Just returns a list of notebooks, i.e.:
+    [%Notebook{}, %Notebook{}]
+  """
   def list_notebooks(%{owner_id: owner_id, limit: limit, offset: offset} = params) do
     sub_categories_query = from s in SubCategory, select: s.id
     from(n in Notebook,

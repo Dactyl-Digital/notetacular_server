@@ -56,6 +56,7 @@ defmodule BackendWeb.Router do
 
     # Notebook Controllers
     post("/notebook", NotebookController, :create_notebook)
+    get("/notebook", NotebookController, :list_notebooks)
   end
 
   scope "/admin", BackendWeb do
