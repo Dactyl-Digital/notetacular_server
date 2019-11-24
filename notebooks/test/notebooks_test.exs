@@ -197,8 +197,6 @@ defmodule NotebooksTest do
           timer_count: 1
         })
 
-      IO.puts("note_timer")
-      IO.inspect(note_timer)
       assert {:ok, %NoteTimer{note_id: read_only_shared_note_id}} = note_timer
     end
 

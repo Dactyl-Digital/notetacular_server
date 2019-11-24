@@ -6,8 +6,6 @@ defmodule Backend.AuthPlug do
   # alias Backend.Helpers
 
   def authorize_user(conn, _opts) do
-    IO.puts("in authorize_user/2")
-
     get_session(conn, :session_data)
     |> IO.inspect()
     |> Auth.check_authorization(fn id -> Accounts.retrieve_credentials_by_id(id) end)
@@ -25,8 +23,6 @@ defmodule Backend.AuthPlug do
   # Prefer this... but it seems as though there's a decent amount of coupling
   # Especially since I wanted to move this plug into a separate app to facilitate reuse...
   defp clean_session(conn) do
-    IO.puts("cleaning session")
-
     conn
     |> delete_session(:session_data)
     |> assign(:current_user, nil)

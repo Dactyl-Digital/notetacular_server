@@ -47,9 +47,6 @@ defmodule BackendWeb.AuthController do
         "password" => password
       }) do
     with {:ok, session_data} <- Accounts.login_user(%{username: username, password: password}) do
-      IO.puts("logging user in with session_data")
-      IO.inspect(session_data)
-
       conn
       |> put_session(:session_data, session_data)
       |> put_status(200)

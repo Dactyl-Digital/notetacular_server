@@ -68,11 +68,12 @@ defmodule BackendWeb.SubCategoryControllerTest do
   describe "/api/sub_category controllers" do
     setup [:setup_user, :setup_notebook]
 
-    test "POST /api/sub_category creates a sub_category with the user's id as the owner_id", %{
-      conn: conn,
-      user: user,
-      notebook: notebook
-    } do
+    test "POST /api/sub_category creates a sub_category with an associated notebook_id as its parent",
+         %{
+           conn: conn,
+           user: user,
+           notebook: notebook
+         } do
       conn = post(conn, "/api/login", %{username: "testuser", password: "testpassword"})
       conn = post(conn, "/api/sub_category", %{title: "sub_category1", notebook_id: notebook.id})
 
@@ -93,9 +94,6 @@ defmodule BackendWeb.SubCategoryControllerTest do
       [%Notebook{sub_categories: sub_categories_id_list}] =
         Notebooks.list_notebooks(%{owner_id: user.id, limit: 20, offset: 0})
 
-      IO.puts("The sub category id list")
-      IO.inspect(sub_categories_id_list)
-
       conn =
         get(conn, "/api/sub_category?limit=10&offset=0", %{
           sub_category_id_list: sub_categories_id_list
@@ -108,6 +106,7 @@ defmodule BackendWeb.SubCategoryControllerTest do
                }
              } = json_response(conn, 200)
 
+      assert Kernel.length(sub_categories) === 2
       # TODO: FIgure out why order_by isn't doing shit... Otherwise this test is finished.
       # assert [%{"title" => "sub_category2"}, %{"title" => "sub_category1"}] = sub_categories
     end

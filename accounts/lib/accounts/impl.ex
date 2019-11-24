@@ -52,13 +52,8 @@ defmodule Accounts.Impl do
     #   }
     # }
     # %User{account_active: account_active, credentials: credentials} =
-    IO.puts("retrieving user w/ credentials")
-    IO.puts("WHAT IS USERNAME")
-
     retrieve_user_with_credentials_by_username(username)
-    |> IO.inspect()
     |> check_password_if_account_active(password)
-    |> IO.inspect()
 
     # new_pw_hash = hash_password(password, @salty)
   end
@@ -107,7 +102,6 @@ defmodule Accounts.Impl do
   end
 
   def update_user_token(:hashed_email_verification_token, id, token) do
-    IO.puts("Updating the user token for hashed_email_verification")
     expiry = Timex.now() |> Timex.shift(hours: 24)
 
     %Credential{id: id}

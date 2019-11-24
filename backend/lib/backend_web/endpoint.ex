@@ -57,8 +57,6 @@ defmodule BackendWeb.Endpoint do
       # System.get_env("PORT") ||
       #   raise "expected the PORT environment variable to be set"
 
-      IO.puts("The port is")
-      IO.inspect(port)
       {:ok, Keyword.put(config, :http, [:inet6, port: port])}
     else
       {:ok, config}

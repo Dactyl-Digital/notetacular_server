@@ -256,6 +256,9 @@ defmodule Notebooks.Impl do
     }, success_fn, fail_fn)
   end
 
+  # NOTE: Wpould need to pattern match on all the possible unprovided values in order to supply an appropriate response...
+  # More of a consideration if I want a really robust program/creating a opensource library.
+  def list_sub_categories(%{sub_category_id_list: _, limit: _, offset: _}), do: {:error, "You must provide a requester_id"}
   def list_sub_categories(_), do: {:error, "sub_category_id_list must be greater than 0"}
 
   defp list_sub_categories_query(%{sub_category_id_list: sub_category_id_list, limit: limit, offset: offset} = params) do
