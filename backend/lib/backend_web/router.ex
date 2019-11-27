@@ -14,15 +14,19 @@ defmodule BackendWeb.Router do
       if Mix.env() === :prod do
         "notastical.com"
       else
-        "http://localhost:7000"
+        "http://localhost:8000"
       end
 
     IO.puts("the origin is set as:")
     IO.inspect(origin)
+    # TODO: Was testing w/ postman to faciliate
+    # checking the format the client will receive.
+    # Get an error when attempting to post over HTTPS...
+    # Look into what that's about.
     plug(CORSPlug, origin: origin)
     plug(:accepts, ["json"])
     plug(:fetch_session)
-    plug(:protect_from_forgery)
+    # plug(:protect_from_forgery)
     plug(:put_secure_browser_headers)
   end
 
@@ -52,11 +56,17 @@ defmodule BackendWeb.Router do
     # i.e. Backend.Router.Helpers.auth_path(Backend.Endpoint, :verify_email, %{} = params)
     get("/verify-email", AuthController, :verify_email)
     post("/signup", AuthController, :signup)
+    # NOTE: using this *options* is necessary otherwise CORS issues
+    #       regarding Allow-Access-Control-Headers not being set by the
+    #       backend pop up.
+    options("/signup", AuthController, :options)
     post("/login", AuthController, :login)
+    options("/login", AuthController, :options)
 
     # Notebook Controllers
     post("/notebook", NotebookController, :create_notebook)
     get("/notebook", NotebookController, :list_notebooks)
+    options("/notebook", NotebookController, :options)
 
     # Sub Category Controllers
     post("/sub_category", SubCategoryController, :create_sub_category)

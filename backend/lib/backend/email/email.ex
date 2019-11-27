@@ -20,7 +20,11 @@ defmodule Backend.Email do
          %Credential{id: id} <- Accounts.retrieve_users_credentials_by_email(email),
          {:ok, _} <-
            Accounts.update_user_token(:hashed_email_verification_token, id, hashed_token) do
-      create_email_verification_email(email, token) |> Backend.Mailer.deliver_now(response: true)
+      IO.puts("right before deliver email")
+
+      create_email_verification_email(email, token)
+      |> Backend.Mailer.deliver_now()
+      |> IO.inspect()
     else
       nil ->
         {:error, "UNAUTHORIZED_REQUEST"}

@@ -7,9 +7,7 @@ defmodule Backend.AuthPlug do
 
   def authorize_user(conn, _opts) do
     get_session(conn, :session_data)
-    |> IO.inspect()
     |> Auth.check_authorization(fn id -> Accounts.retrieve_credentials_by_id(id) end)
-    |> IO.inspect()
     |> assign_user_to_conn(conn)
   end
 

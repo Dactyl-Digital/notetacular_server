@@ -1,5 +1,6 @@
 defmodule BackendWeb.AuthController do
   use BackendWeb, :controller
+  import Bamboo
 
   def csrf(conn, _params) do
     csrf_token = get_csrf_token()
@@ -27,7 +28,8 @@ defmodule BackendWeb.AuthController do
       }) do
     with {:ok, _user} <-
            Accounts.create_user(%{email: email, username: username, password: password}),
-         {_, {:delivered_email, _email}} <- Backend.Email.deliver_email_verification_email(email) do
+         %Bamboo.Email{} <-
+           Backend.Email.deliver_email_verification_email(email) do
       conn |> put_status(201) |> json(%{message: "Please verify your email"})
     else
       {:error, errors} ->
