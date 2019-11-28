@@ -69,8 +69,8 @@ defmodule BackendWeb.Router do
     options("/notebook", NotebookController, :options)
 
     # Sub Category Controllers
-    post("/sub_category", SubCategoryController, :create_sub_category)
-    get("/sub_category", SubCategoryController, :list_sub_categories)
+    post("/sub-category", SubCategoryController, :create_sub_category)
+    get("/sub-category", SubCategoryController, :list_sub_categories)
 
     # Topic Controllers
     post("/topic", TopicController, :create_topic)

@@ -83,8 +83,7 @@ defmodule BackendWeb.AuthControllerTest do
         password: "testpassword3"
       })
 
-    {_, {:delivered_email, %{html_body: html_body}}} =
-      Email.deliver_email_verification_email(email)
+    %{html_body: html_body} = Email.deliver_email_verification_email(email)
 
     email_verification_endpoint = extract_email_verification_link_from_html(html_body)
     # unit test the helper function

@@ -65,17 +65,17 @@ defmodule BackendWeb.SubCategoryControllerTest do
     :ok
   end
 
-  describe "/api/sub_category controllers" do
+  describe "/api/sub-category controllers" do
     setup [:setup_user, :setup_notebook]
 
-    test "POST /api/sub_category creates a sub_category with an associated notebook_id as its parent",
+    test "POST /api/sub-category creates a sub_category with an associated notebook_id as its parent",
          %{
            conn: conn,
            user: user,
            notebook: notebook
          } do
       conn = post(conn, "/api/login", %{username: "testuser", password: "testpassword"})
-      conn = post(conn, "/api/sub_category", %{title: "sub_category1", notebook_id: notebook.id})
+      conn = post(conn, "/api/sub-category", %{title: "sub_category1", notebook_id: notebook.id})
 
       assert %{"message" => "Successfully created sub category!"} === json_response(conn, 200)
 
@@ -88,14 +88,14 @@ defmodule BackendWeb.SubCategoryControllerTest do
     test "GET /api/sub_category lists all of the sub_categories nested in a notebook's sub_categories_id_list",
          %{conn: conn, user: user, notebook: notebook} do
       conn = post(conn, "/api/login", %{username: "testuser", password: "testpassword"})
-      conn = post(conn, "/api/sub_category", %{title: "sub_category1", notebook_id: notebook.id})
-      conn = post(conn, "/api/sub_category", %{title: "sub_category2", notebook_id: notebook.id})
+      conn = post(conn, "/api/sub-category", %{title: "sub_category1", notebook_id: notebook.id})
+      conn = post(conn, "/api/sub-category", %{title: "sub_category2", notebook_id: notebook.id})
 
       [%Notebook{sub_categories: sub_categories_id_list}] =
         Notebooks.list_notebooks(%{owner_id: user.id, limit: 20, offset: 0})
 
       conn =
-        get(conn, "/api/sub_category?limit=10&offset=0", %{
+        get(conn, "/api/sub-category?limit=10&offset=0", %{
           sub_category_id_list: sub_categories_id_list
         })
 

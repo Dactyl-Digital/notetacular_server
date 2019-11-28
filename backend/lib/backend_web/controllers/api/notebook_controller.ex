@@ -14,7 +14,7 @@ defmodule BackendWeb.NotebookController do
     with {:ok, %Notebook{} = notebook} <-
            Notebooks.create_notebook(%{title: title, owner_id: current_user.user_id}) do
       conn
-      |> put_status(200)
+      |> put_status(201)
       |> json(%{message: "Successfully created notebook!", data: notebook})
     else
       {:error, errors} ->

@@ -66,11 +66,19 @@ defmodule BackendWeb.NotebookControllerTest do
   describe "/api/notebook controllers" do
     setup [:setup_user]
 
-    test "POST /api/notebook creates a notebook with the user's id as the owner_id", %{conn: conn} do
+    test "POST /api/notebook creates a notebook with the user's id as the owner_id", %{
+      conn: conn,
+      user: user
+    } do
       conn = post(conn, "/api/login", %{username: "testuser", password: "testpassword"})
       conn = post(conn, "/api/notebook", %{title: "notebook1"})
 
-      assert %{"message" => "Successfully created notebook!"} === json_response(conn, 200)
+      assert %{
+               "message" => "Successfully created notebook!",
+               "data" => %{"id" => id, "owner_id" => owner_id, "title" => "notebook1"}
+             } = json_response(conn, 201)
+
+      assert owner_id === user.id
     end
 
     test "GET /api/notebooks lists a user's own notebooks", %{conn: conn, user: user} do

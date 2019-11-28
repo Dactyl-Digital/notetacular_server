@@ -87,7 +87,7 @@ defmodule BackendWeb.NoteControllerTest do
   describe "/api/note controllers" do
     setup [:setup_user, :setup_topic_id_list]
 
-    test "POST /api/note creates a note with the user's id as the owner_id", %{
+    test "POST /api/note creates a note", %{
       conn: conn,
       user: user,
       topic_id_list: topic_id_list
@@ -101,7 +101,8 @@ defmodule BackendWeb.NoteControllerTest do
           topic_id: Enum.at(topic_id_list, 0)
         })
 
-      assert %{"message" => "Successfully created note!"} === json_response(conn, 200)
+      assert %{"message" => "Successfully created note!", "data" => %{"id" => id}} =
+               json_response(conn, 201)
 
       assert [%Topic{notes: notes}] =
                Notebooks.list_topics(%{
@@ -112,6 +113,7 @@ defmodule BackendWeb.NoteControllerTest do
                })
 
       assert Kernel.length(notes) === 1
+      # assert Enum.at(notes, 0).id === id
     end
 
     test "GET /api/note lists all of the notes nested in a topics's topic_id_list",
@@ -172,7 +174,8 @@ defmodule BackendWeb.NoteControllerTest do
           topic_id: Enum.at(topic_id_list, 0)
         })
 
-      assert %{"message" => "Successfully created note!", "id" => id} = json_response(conn, 201)
+      assert %{"message" => "Successfully created note!", "data" => %{"id" => id}} =
+               json_response(conn, 201)
 
       conn =
         put(conn, "/api/note/content", %{
