@@ -26,7 +26,6 @@ defmodule Backend.AuthPlug do
     |> assign(:current_user, nil)
     |> put_status(400)
     |> Phoenix.Controller.json(%{message: "Invalid session"})
-    |> IO.inspect()
     |> halt
   end
 end

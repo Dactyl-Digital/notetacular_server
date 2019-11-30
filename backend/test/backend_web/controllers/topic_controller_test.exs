@@ -91,7 +91,8 @@ defmodule BackendWeb.TopicControllerTest do
           sub_category_id: Enum.at(sub_category_id_list, 0)
         })
 
-      assert %{"message" => "Successfully created topic!"} === json_response(conn, 200)
+      assert %{"message" => "Successfully created topic!", "data" => data} =
+               json_response(conn, 201)
 
       assert [%SubCategory{topics: topics}] =
                Notebooks.list_sub_categories(%{

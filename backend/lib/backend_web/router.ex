@@ -71,6 +71,7 @@ defmodule BackendWeb.Router do
     # Sub Category Controllers
     post("/sub-category", SubCategoryController, :create_sub_category)
     get("/sub-category", SubCategoryController, :list_sub_categories)
+    options("/sub-category", SubCategoryController, :options)
 
     # Topic Controllers
     post("/topic", TopicController, :create_topic)

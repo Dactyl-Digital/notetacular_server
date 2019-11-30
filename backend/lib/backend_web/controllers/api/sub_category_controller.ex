@@ -28,8 +28,8 @@ defmodule BackendWeb.SubCategoryController do
              notebook_id: notebook_id
            }) do
       conn
-      |> put_status(200)
-      |> json(%{message: "Successfully created sub category!"})
+      |> put_status(201)
+      |> json(%{message: "Successfully created sub category!", data: sub_category})
     else
       {:error, errors} ->
         conn |> put_status(400) |> json(%{errors: errors})
@@ -49,11 +49,18 @@ defmodule BackendWeb.SubCategoryController do
         "sub_category_id_list" => sub_category_id_list
       }) do
     %{current_user: current_user} = conn.assigns
-
+    # TODO: Implement a pattern match on this...
+    # Because when this case is reached
+    # -> {:error, "You must provide a requester_id"}
+    # it ends up as the value of sub_categories, and
+    # is attempted to be sent back as JSON... and
+    # this error would crash the server process.
     with sub_categories <-
            Notebooks.list_sub_categories(%{
              requester_id: current_user.user_id,
-             sub_category_id_list: sub_category_id_list,
+             # NOTE: sub_category_id_list is converted from integer list to string list
+             #       when sent from client to server.
+             sub_category_id_list: sub_category_id_list |> Enum.map(&String.to_integer/1),
              limit: limit,
              offset: offset
            }) do

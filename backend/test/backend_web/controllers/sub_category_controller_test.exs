@@ -77,12 +77,14 @@ defmodule BackendWeb.SubCategoryControllerTest do
       conn = post(conn, "/api/login", %{username: "testuser", password: "testpassword"})
       conn = post(conn, "/api/sub-category", %{title: "sub_category1", notebook_id: notebook.id})
 
-      assert %{"message" => "Successfully created sub category!"} === json_response(conn, 200)
+      assert %{"message" => "Successfully created sub category!", "data" => data} =
+               json_response(conn, 201)
 
       assert [%Notebook{sub_categories: sub_categories}] =
                Notebooks.list_notebooks(%{owner_id: user.id, limit: 20, offset: 0})
 
       assert Kernel.length(sub_categories) === 1
+      # assert Enum.at(sub_categories, 0).id === data.id
     end
 
     test "GET /api/sub_category lists all of the sub_categories nested in a notebook's sub_categories_id_list",

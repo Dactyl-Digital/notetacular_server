@@ -19,8 +19,8 @@ defmodule BackendWeb.TopicController do
              sub_category_id: sub_category_id
            }) do
       conn
-      |> put_status(200)
-      |> json(%{message: "Successfully created topic!"})
+      |> put_status(201)
+      |> json(%{message: "Successfully created topic!", data: topic})
     else
       {:error, errors} ->
         conn |> put_status(400) |> json(%{errors: errors})

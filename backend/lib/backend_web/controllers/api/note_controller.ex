@@ -24,7 +24,7 @@ defmodule BackendWeb.NoteController do
       # TODO: Suppose I should just be returning the resource's id for
       # Notebook, SubCategory, and Topic resources as well... to facilitate
       # the update controller actions.
-      |> json(%{message: "Successfully created note!", data: %{id: note.id}})
+      |> json(%{message: "Successfully created note!", data: note})
     else
       {:error, errors} ->
         conn |> put_status(400) |> json(%{errors: errors})
