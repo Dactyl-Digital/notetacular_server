@@ -88,11 +88,14 @@ defmodule BackendWeb.TopicControllerTest do
       conn =
         post(conn, "/api/topic", %{
           title: "topic1",
-          sub_category_id: Enum.at(sub_category_id_list, 0)
+          sub_category_id: "#{Enum.at(sub_category_id_list, 0)}"
         })
 
       assert %{"message" => "Successfully created topic!", "data" => data} =
                json_response(conn, 201)
+
+      IO.puts("THE CREATED TOPIC")
+      IO.inspect(data)
 
       assert [%SubCategory{topics: topics}] =
                Notebooks.list_sub_categories(%{
@@ -112,13 +115,13 @@ defmodule BackendWeb.TopicControllerTest do
       conn =
         post(conn, "/api/topic", %{
           title: "topic1",
-          sub_category_id: Enum.at(sub_category_id_list, 0)
+          sub_category_id: "#{Enum.at(sub_category_id_list, 0)}"
         })
 
       conn =
         post(conn, "/api/topic", %{
           title: "topic2",
-          sub_category_id: Enum.at(sub_category_id_list, 0)
+          sub_category_id: "#{Enum.at(sub_category_id_list, 0)}"
         })
 
       [%SubCategory{topics: topics_id_list}] =
@@ -131,7 +134,7 @@ defmodule BackendWeb.TopicControllerTest do
 
       conn =
         get(conn, "/api/topic?limit=10&offset=0", %{
-          topic_id_list: topics_id_list
+          topic_id_list: topics_id_list |> Enum.map(&Integer.to_string/1)
         })
 
       assert %{

@@ -25,7 +25,8 @@ defmodule BackendWeb.SubCategoryController do
              requester_id: current_user.user_id,
              title: title,
              # TODO: Ask about UUIDs and how to handle potential collisions.
-             notebook_id: notebook_id
+             # |> String.to_integer()
+             notebook_id: notebook_id |> String.to_integer()
            }) do
       conn
       |> put_status(201)

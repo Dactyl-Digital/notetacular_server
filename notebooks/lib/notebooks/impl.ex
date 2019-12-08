@@ -505,7 +505,7 @@ defmodule Notebooks.Impl do
   defp retrieve_and_update_note_content(%{note_id: note_id, content_markdown: content_markdown, content_text: content_text} = params) do
     # TODO: Add updated_at: DateTime.utc_now() // Need to require DateTime in this module
     update_query = from(n in Note, where: n.id == ^note_id, update: [set: [content_markdown: ^content_markdown, content_text: ^content_text]])
-    case Repo.update_all(update_query, []) do
+    case update_query |> Repo.update_all([]) do
       {1, nil} ->
         {:ok, "Successfully updated the note!"}
 

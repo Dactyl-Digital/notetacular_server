@@ -16,7 +16,7 @@ defmodule BackendWeb.TopicController do
              requester_id: current_user.user_id,
              title: title,
              # TODO: Ask about UUIDs and how to handle potential collisions.
-             sub_category_id: sub_category_id
+             sub_category_id: sub_category_id |> String.to_integer()
            }) do
       conn
       |> put_status(201)
@@ -44,7 +44,7 @@ defmodule BackendWeb.TopicController do
     with topics <-
            Notebooks.list_topics(%{
              requester_id: current_user.user_id,
-             topic_id_list: topic_id_list,
+             topic_id_list: topic_id_list |> Enum.map(&String.to_integer/1),
              limit: limit,
              offset: offset
            }) do

@@ -48,7 +48,7 @@ defmodule BackendWeb.NoteController do
     with notes <-
            Notebooks.list_notes(%{
              requester_id: current_user.user_id,
-             note_id_list: note_id_list,
+             note_id_list: note_id_list |> Enum.map(&String.to_integer/1),
              limit: limit,
              offset: offset
            }) do

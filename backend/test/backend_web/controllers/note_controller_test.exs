@@ -144,7 +144,7 @@ defmodule BackendWeb.NoteControllerTest do
 
       conn =
         get(conn, "/api/note?limit=10&offset=0", %{
-          note_id_list: note_id_list
+          note_id_list: note_id_list |> Enum.map(&Integer.to_string/1)
         })
 
       assert %{

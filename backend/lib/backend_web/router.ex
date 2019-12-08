@@ -76,11 +76,14 @@ defmodule BackendWeb.Router do
     # Topic Controllers
     post("/topic", TopicController, :create_topic)
     get("/topic", TopicController, :list_topics)
+    options("/topic", TopicController, :options)
 
     # Note Controllers
     post("/note", NoteController, :create_note)
     get("/note", NoteController, :list_notes)
     put("/note/content", NoteController, :update_note_content)
+    options("/note", NoteController, :options)
+    options("/note/content", NoteController, :options)
   end
 
   scope "/admin", BackendWeb do

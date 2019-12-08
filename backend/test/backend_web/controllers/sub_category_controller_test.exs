@@ -75,7 +75,9 @@ defmodule BackendWeb.SubCategoryControllerTest do
            notebook: notebook
          } do
       conn = post(conn, "/api/login", %{username: "testuser", password: "testpassword"})
-      conn = post(conn, "/api/sub-category", %{title: "sub_category1", notebook_id: notebook.id})
+
+      conn =
+        post(conn, "/api/sub-category", %{title: "sub_category1", notebook_id: "#{notebook.id}"})
 
       assert %{"message" => "Successfully created sub category!", "data" => data} =
                json_response(conn, 201)
@@ -90,15 +92,19 @@ defmodule BackendWeb.SubCategoryControllerTest do
     test "GET /api/sub_category lists all of the sub_categories nested in a notebook's sub_categories_id_list",
          %{conn: conn, user: user, notebook: notebook} do
       conn = post(conn, "/api/login", %{username: "testuser", password: "testpassword"})
-      conn = post(conn, "/api/sub-category", %{title: "sub_category1", notebook_id: notebook.id})
-      conn = post(conn, "/api/sub-category", %{title: "sub_category2", notebook_id: notebook.id})
+
+      conn =
+        post(conn, "/api/sub-category", %{title: "sub_category1", notebook_id: "#{notebook.id}"})
+
+      conn =
+        post(conn, "/api/sub-category", %{title: "sub_category2", notebook_id: "#{notebook.id}"})
 
       [%Notebook{sub_categories: sub_categories_id_list}] =
         Notebooks.list_notebooks(%{owner_id: user.id, limit: 20, offset: 0})
 
       conn =
         get(conn, "/api/sub-category?limit=10&offset=0", %{
-          sub_category_id_list: sub_categories_id_list
+          sub_category_id_list: sub_categories_id_list |> Enum.map(&Integer.to_string/1)
         })
 
       assert %{
