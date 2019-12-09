@@ -124,20 +124,20 @@ defmodule BackendWeb.NoteControllerTest do
         post(conn, "/api/note", %{
           title: "note1",
           order: 1,
-          topic_id: Enum.at(topic_id_list, 0)
+          topic_id: "#{Enum.at(topic_id_list, 0)}"
         })
 
       conn =
         post(conn, "/api/note", %{
           title: "note2",
           order: 2,
-          topic_id: Enum.at(topic_id_list, 0)
+          topic_id: "#{Enum.at(topic_id_list, 0)}"
         })
 
       [%Topic{notes: note_id_list}] =
         Notebooks.list_topics(%{
           requester_id: user.id,
-          topic_id_list: topic_id_list,
+          topic_id_list: topic_id_list |> Enum.map(&Integer.to_string/1),
           limit: 20,
           offset: 0
         })
