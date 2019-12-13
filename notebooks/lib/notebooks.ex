@@ -39,13 +39,14 @@ defmodule Notebooks do
   defdelegate update_note_content(params), to: Notebooks.Impl
   defdelegate update_note_order(note_id_and_order_list), to: Notebooks.Impl
   defdelegate delete_note(note_id), to: Notebooks.Impl
-  
+
   # **************************
   # NoteTimer Resource Actions
   # **************************
   defdelegate create_note_timer(params), to: Notebooks.Impl
   defdelegate update_note_timer(params), to: Notebooks.Impl
-  
+  defdelegate delete_note_timer(params), to: Notebooks.Impl
+
   # **************************************
   # For Internal Usage within Context only
   # (Exposing only for purposes of testing)
@@ -56,5 +57,5 @@ defmodule Notebooks do
   # Topic & Note Resource Actions
   # *****************************
   defdelegate add_tags(resource, params), to: Notebooks.Impl
-  defdelegate remove_tags(resource, params), to: Notebooks.Impl
+  defdelegate remove_tag(resource, params), to: Notebooks.Impl
 end

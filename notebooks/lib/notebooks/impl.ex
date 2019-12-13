@@ -176,6 +176,7 @@ defmodule Notebooks.Impl do
         limit: 1,
       )
 
+
     case Repo.all(query) do
       [%NotebookShareuser{user_id: user_id}] = notebook_shareuser ->
         # Update the owner to the first created notebook_shareuser
@@ -437,11 +438,21 @@ defmodule Notebooks.Impl do
 
   defp list_notes_query(%{note_id_list: note_id_list, limit: limit, offset: offset} = params) do
     from(
-      n in Note,
+      n in "notes",
       where: n.id in ^note_id_list,
       order_by: [desc: n.updated_at],
       limit: ^limit,
       offset: ^offset,
+      select: %{
+        id: n.id,
+        topic_id: n.topic_id,
+        title: n.title,
+        order: n.order,
+        tags: n.tags,
+        content_markdown: n.content_markdown,
+        inserted_at: n.inserted_at,
+        updated_at: n.updated_at
+      }
     ) |> Repo.all
   end
 
@@ -525,9 +536,15 @@ defmodule Notebooks.Impl do
   #       the first letter of every word when displaying them?
   # Or perhaps this is a non concern....
   @doc """
+  NOTE: The tags array will be in alphabetical order. Suppose
+        this has to do w/ the implementation of the MapSet.
+
   Success case:
   {:ok, struct}
 
+  TODO: Need to see how I'll handle the error case when the
+  returned changeset is retrieved in the controller... as of right
+  now it'll blow up.
   Error case:
   {:error, changeset} // W/ validation/contraint errors.
   """
@@ -543,7 +560,7 @@ defmodule Notebooks.Impl do
     Note.add_tags_changeset(note, %{tags: MapSet.to_list(set)}) |> Repo.update
   end
 
-  def remove_tags(:topic, %{topic_id: topic_id, tag: tag}) do
+  def remove_tag(:topic, %{topic_id: topic_id, tag: tag}) do
     topic = Repo.get(Topic, topic_id)
     set = MapSet.new(topic.tags)
     case MapSet.member?(set, tag) do
@@ -555,7 +572,7 @@ defmodule Notebooks.Impl do
     end
   end
 
-  def remove_tags(:note, %{note_id: note_id, tag: tag}) do
+  def remove_tag(:note, %{note_id: note_id, tag: tag}) do
     note = Repo.get(Note, note_id)
     set = MapSet.new(note.tags)
     case MapSet.member?(set, tag) do
@@ -607,10 +624,20 @@ defmodule Notebooks.Impl do
   def update_note_timer(%{
     requester_id: requester_id,
     note_timer_id: note_timer_id,
-    updates: updates
+    updates: %{elapsed_seconds: elapsed_seconds}
   } = params) do
       success_fn = (fn ->
-        %NoteTimer{} |> NoteTimer.changeset(updates) |> Repo.insert
+        update_query = from(nt in NoteTimer, where: nt.id == ^note_timer_id, update: [set: [elapsed_seconds: ^elapsed_seconds]])
+        case update_query |> Repo.update_all([]) do
+          {1, nil} ->
+            {:ok, "Successfully updated the note timer!"}
+
+          {_, nil} ->
+            {:error, "Unable to retrieve the note timer."}
+
+          _ ->
+            {:error, "Oops, something went wrong."}
+        end
       end)
       fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
                   operation: :write,
@@ -623,6 +650,23 @@ defmodule Notebooks.Impl do
         resource_id: note_timer_id,
         resource_type: :note_timer,
       }, success_fn, fail_fn)
+  end
+
+  def delete_note_timer(%{requester_id: requester_id, note_timer_id: note_timer_id}) do
+    success_fn = (fn ->
+      NoteTimer |> Repo.get(note_timer_id) |> Repo.delete
+    end)
+    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                operation: :write,
+                notebook_id: notebook_id,
+                requester_id: requester_id,
+                success_fn: success_fn
+              }) end)
+    check_notebook_access_authorization(%{
+      requester_id: requester_id,
+      resource_id: note_timer_id,
+      resource_type: :note_timer,
+    }, success_fn, fail_fn)
   end
 
   # ****************************************************
@@ -721,10 +765,10 @@ defmodule Notebooks.Impl do
   # Accessor Functions to Retrieve
   # a Resource's Associated Notebook
   #################################
-  def retrieve_note_timers_associated_notebook(%{note_timers_id: note_timers_id}) do
+  def retrieve_note_timers_associated_notebook(%{note_timer_id: note_timer_id}) do
     from(
-      nt in "note_timerss",
-      where: nt.id == ^note_timers_id,
+      nt in "note_timers",
+      where: nt.id == ^note_timer_id,
       join: n in "notes",
       on: nt.note_id == n.id,
       join: t in "topics",

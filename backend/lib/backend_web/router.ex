@@ -76,14 +76,26 @@ defmodule BackendWeb.Router do
     # Topic Controllers
     post("/topic", TopicController, :create_topic)
     get("/topic", TopicController, :list_topics)
+    post("/topic/tags", TopicController, :add_tags)
+    patch("/topic/tags", TopicController, :remove_tag)
     options("/topic", TopicController, :options)
+    options("/topic/tags", TopicController, :options)
 
     # Note Controllers
     post("/note", NoteController, :create_note)
     get("/note", NoteController, :list_notes)
     put("/note/content", NoteController, :update_note_content)
+    post("/note/tags", NoteController, :add_tags)
+    patch("/note/tags", NoteController, :remove_tag)
     options("/note", NoteController, :options)
     options("/note/content", NoteController, :options)
+    options("/note/tags", NoteController, :options)
+
+    # Note Timer Controllers
+    post("/note-timer", NoteController, :create_note_timer)
+    patch("/note-timer", NoteController, :update_note_timer)
+    delete("/note-timer", NoteController, :delete_note_timer)
+    options("/note-timer", NoteController, :options)
   end
 
   scope "/admin", BackendWeb do

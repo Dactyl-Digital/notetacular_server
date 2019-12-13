@@ -1,7 +1,7 @@
 defmodule BackendWeb.NoteController do
   use BackendWeb, :controller
   import Backend.AuthPlug
-  alias Dbstore.{Notebook, Note}
+  alias Dbstore.{Notebook, Note, NoteTimer}
 
   plug(:authorize_user)
 
@@ -93,6 +93,137 @@ defmodule BackendWeb.NoteController do
       {:error, "Unable to retrieve the note."} ->
         conn |> put_status(400) |> json(%{message: "Unable to retrieve the note."})
 
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
+
+  # TODO: test add_tags and remove_tag
+  def add_tags(conn, %{"note_id" => note_id, "tags" => tags}) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, %Note{id: id, tags: tags, topic_id: topic_id} = note} <-
+           Notebooks.add_tags(:note, %{note_id: note_id, tags: tags}) do
+      conn
+      |> put_status(201)
+      |> json(%{
+        message: "Successfully added tags!",
+        data: %{
+          id: id,
+          tags: tags,
+          topic_id: topic_id
+        }
+      })
+    else
+      {:error, msg} ->
+        # TODO: Set to Bad Request status code
+        conn |> put_status(401) |> json(%{message: msg})
+
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
+
+  def remove_tag(conn, %{"note_id" => note_id, "tag" => tag}) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, %Note{id: id, tags: tags, topic_id: topic_id} = topic} <-
+           Notebooks.remove_tag(:note, %{note_id: note_id, tag: tag}) do
+      conn
+      |> put_status(200)
+      |> json(%{
+        message: "Successfully removed tag!",
+        data: %{
+          id: id,
+          tags: tags,
+          topic_id: topic_id
+        }
+      })
+    else
+      {:error, "Tag is not in the list of tags."} ->
+        # TODO: Set to Bad Request status code
+        conn |> put_status(401) |> json(%{message: "Tag is not in the list of tags."})
+
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
+
+  def create_note_timer(conn, %{"timer_count" => timer_count, "note_id" => note_id} = params) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, %NoteTimer{} = note_timer} <-
+           Notebooks.create_note_timer(%{
+             requester_id: current_user.user_id,
+             timer_count: timer_count,
+             note_id: note_id
+           }) do
+      conn
+      |> put_status(201)
+      |> json(%{
+        message: "Successfully created note timer!",
+        data: note_timer
+      })
+    else
+      {:error, "Unable to retrieve the note timer."} ->
+        conn |> put_status(400) |> json(%{message: "Unable to retrieve the note timer."})
+
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
+
+  def update_note_timer(
+        conn,
+        %{
+          "requester_id" => requester_id,
+          "note_timer_id" => note_timer_id,
+          "updates" => updates
+        } = params
+      ) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, %NoteTimer{} = note_timer} <-
+           Notebooks.update_note_timer(%{
+             requester_id: current_user.user_id,
+             note_timer_id: note_timer_id,
+             updates: updates
+           }) do
+      conn
+      |> put_status(201)
+      |> json(%{
+        message: "Successfully updated note timer!",
+        data: note_timer
+      })
+    else
+      {:error, "Unable to retrieve the note timer."} ->
+        conn |> put_status(400) |> json(%{message: "Unable to retrieve the note timer."})
+
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
+
+  def delete_note_timer(
+        conn,
+        %{"note_timer_id" => note_timer_id} = params
+      ) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, %NoteTimer{} = note_timer} <-
+           Notebooks.delete_note_timer(%{
+             requester_id: current_user.user_id,
+             note_timer_id: note_timer_id
+           }) do
+      conn
+      |> put_status(201)
+      |> json(%{
+        message: "Successfully deleted the note timer!",
+        data: note_timer
+      })
+    else
+      # {:error, "UNAUTHORIZED_REQUEST"} This is another possible return result
+      # But I suppose I didn't want to explicitly return a message along the lines of this?
       _ ->
         conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
     end

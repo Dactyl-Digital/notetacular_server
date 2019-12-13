@@ -258,6 +258,78 @@ defmodule NotebooksTest do
                })
     end
 
+    test "add_tags updates an existing topic with new tags",
+         %{topic1_id: topic1_id} do
+      assert {:ok, %Topic{tags: ["tagOne", "tagTwo"]}} =
+               Notebooks.add_tags(:topic, %{topic_id: topic1_id, tags: ["tagOne", "tagTwo"]})
+
+      assert {:ok, %Topic{tags: ["AAA", "tagOne", "tagTwo"]}} =
+               Notebooks.add_tags(:topic, %{topic_id: topic1_id, tags: ["AAA"]})
+    end
+
+    test "remove_tags remove a tag from a topic's tags list",
+         %{topic1_id: topic1_id} do
+      Notebooks.add_tags(:topic, %{topic_id: topic1_id, tags: ["AAA", "tagOne", "tagTwo"]})
+
+      assert {:ok, %Topic{tags: ["tagOne", "tagTwo"]}} =
+               Notebooks.remove_tag(:topic, %{topic_id: topic1_id, tag: "AAA"})
+    end
+
+    test "creates a new note timer under an associated note", %{
+      user1_id: user1_id,
+      write_enabled_shared_note_id: write_enabled_shared_note_id
+    } do
+      assert {:ok, %NoteTimer{id: id}} =
+               Notebooks.create_note_timer(%{
+                 requester_id: user1_id,
+                 timer_count: 1,
+                 note_id: write_enabled_shared_note_id
+               })
+    end
+
+    test "updates an already existing note timer associated with a particular note", %{
+      user1_id: user1_id,
+      write_enabled_shared_note_id: write_enabled_shared_note_id
+    } do
+      {:ok, %NoteTimer{id: id}} =
+        Notebooks.create_note_timer(%{
+          requester_id: user1_id,
+          timer_count: 1,
+          note_id: write_enabled_shared_note_id
+        })
+
+      assert {:ok, "Successfully updated the note timer!"} =
+               Notebooks.update_note_timer(%{
+                 requester_id: user1_id,
+                 note_timer_id: id,
+                 updates: %{
+                   elapsed_seconds: 120,
+                   description: "Updated was a great success!"
+                 }
+               })
+
+      # TODO: retrieve the note timer and verify elapsed seconds was properly persisted.
+    end
+
+    test "deletes a note timer", %{
+      user1_id: user1_id,
+      write_enabled_shared_note_id: write_enabled_shared_note_id
+    } do
+      {:ok, %NoteTimer{id: id}} =
+        Notebooks.create_note_timer(%{
+          requester_id: user1_id,
+          timer_count: 1,
+          note_id: write_enabled_shared_note_id
+        })
+
+      assert %NoteTimer{} = Repo.get(NoteTimer, id)
+
+      assert {:ok, %NoteTimer{}} =
+               Notebooks.delete_note_timer(%{requester_id: user1_id, note_timer_id: id})
+
+      assert nil === Repo.get(NoteTimer, id)
+    end
+
     # TODO: Need to test the listing stuffs.
     # NOTE: listing sub_cats
     # shared_notebook_list = Notebooks.list_shared_notebooks(%{user_id: read_only_notebook_shareuser.user_id, limit: 10, offset: 0})

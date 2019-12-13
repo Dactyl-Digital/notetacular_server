@@ -5,7 +5,7 @@ defmodule Dbstore.Note do
   schema "notes" do
     field(:title, :string)
     field(:content_markdown, :map)
-    field(:content_text, :string)
+    field(:content_text, Dbstore.Ecto.Types.TSVectorType)
     field(:order, :integer)
     field(:tags, {:array, :string})
 
