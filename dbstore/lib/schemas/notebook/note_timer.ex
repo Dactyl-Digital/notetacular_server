@@ -9,6 +9,9 @@ defmodule Dbstore.NoteTimer do
     field(:description, :string)
     field(:timer_count, :integer)
 
+    # TODO:
+    # Look into creating a unique compound index on note_id/timer_count
+    # https://stackoverflow.com/a/37859294/10383131
     timestamps()
     belongs_to(:notes, Dbstore.Note, foreign_key: :note_id)
   end
