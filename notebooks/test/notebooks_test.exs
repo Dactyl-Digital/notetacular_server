@@ -298,7 +298,15 @@ defmodule NotebooksTest do
           note_id: write_enabled_shared_note_id
         })
 
-      assert {:ok, "Successfully updated the note timer!"} =
+      assert {:ok,
+              %{
+                data: %{
+                  description: "Updated was a great success!",
+                  elapsed_seconds: 120,
+                  id: note_timer_id
+                },
+                message: "Successfully updated the note timer!"
+              }} =
                Notebooks.update_note_timer(%{
                  requester_id: user1_id,
                  note_timer_id: id,
@@ -307,6 +315,8 @@ defmodule NotebooksTest do
                    description: "Updated was a great success!"
                  }
                })
+
+      assert id === note_timer_id
 
       # TODO: retrieve the note timer and verify elapsed seconds was properly persisted.
     end

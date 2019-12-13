@@ -622,15 +622,27 @@ defmodule Notebooks.Impl do
   }
   """
   def update_note_timer(%{
+    requester_id: nil
+  }), do: {:error, "You must provide requester_id."}
+
+  def update_note_timer(%{
+    note_timer_id: nil
+  }), do: {:error, "You must provide note_timer_id."}
+
+  def update_note_timer(%{
+    updates: %{elapsed_seconds: nil, description: nil}
+  }), do: {:error, "You must provide either elapsed_seconds or description as updates."}
+
+  def update_note_timer(%{
     requester_id: requester_id,
     note_timer_id: note_timer_id,
-    updates: %{elapsed_seconds: elapsed_seconds}
+    updates: updates
   } = params) do
       success_fn = (fn ->
-        update_query = from(nt in NoteTimer, where: nt.id == ^note_timer_id, update: [set: [elapsed_seconds: ^elapsed_seconds]])
+        {non_nil_updates, update_query} = generate_update_query(:note_timer, %{note_timer_id: note_timer_id}, updates)
         case update_query |> Repo.update_all([]) do
           {1, nil} ->
-            {:ok, "Successfully updated the note timer!"}
+            {:ok, %{message: "Successfully updated the note timer!", data: non_nil_updates}}
 
           {_, nil} ->
             {:error, "Unable to retrieve the note timer."}
@@ -650,6 +662,21 @@ defmodule Notebooks.Impl do
         resource_id: note_timer_id,
         resource_type: :note_timer,
       }, success_fn, fail_fn)
+  end
+
+  defp generate_update_query(:note_timer, %{note_timer_id: note_timer_id}, %{elapsed_seconds: elapsed_seconds, description: nil}) do
+    query = from(nt in NoteTimer, where: nt.id == ^note_timer_id, update: [set: [elapsed_seconds: ^elapsed_seconds]])
+    {%{elapsed_seconds: elapsed_seconds, id: note_timer_id}, query}
+  end
+
+  defp generate_update_query(:note_timer, %{note_timer_id: note_timer_id}, %{elapsed_seconds: nil, description: description}) do
+    query = from(nt in NoteTimer, where: nt.id == ^note_timer_id, update: [set: [description: ^description]])
+    {%{description: description, id: note_timer_id}, query}
+  end
+
+  defp generate_update_query(:note_timer, %{note_timer_id: note_timer_id}, %{elapsed_seconds: elapsed_seconds, description: description} = updates) do
+    query = from(nt in NoteTimer, where: nt.id == ^note_timer_id, update: [set: [elapsed_seconds: ^elapsed_seconds, description: ^description]])
+    {Map.put(updates, :id, note_timer_id), query}
   end
 
   def delete_note_timer(%{requester_id: requester_id, note_timer_id: note_timer_id}) do
