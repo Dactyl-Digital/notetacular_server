@@ -61,7 +61,9 @@ defmodule BackendWeb.Router do
     #       backend pop up.
     options("/signup", AuthController, :options)
     post("/login", AuthController, :login)
+    post("/logout", AuthController, :logout)
     options("/login", AuthController, :options)
+    options("/logout", AuthController, :options)
 
     # Notebook Controllers
     post("/notebook", NotebookController, :create_notebook)

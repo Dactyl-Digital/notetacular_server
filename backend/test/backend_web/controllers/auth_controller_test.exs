@@ -17,6 +17,14 @@ defmodule BackendWeb.AuthControllerTest do
   #   end)
   # end
   def setup_user(context) do
+    # TODO: Find a cleaner solut\
+    # Using setup [:setup_user] within a describe block, invokes
+    # the setup function for each test. So this is required to make
+    # the test suite pass.
+    Repo.delete_all("credentials")
+    Repo.delete_all("memberships")
+    Repo.delete_all("users")
+
     {:ok, user} =
       %User{}
       |> User.changeset(%{
@@ -102,6 +110,12 @@ defmodule BackendWeb.AuthControllerTest do
 
       # assert %{"message" => "Please verify your email"} === json_response(conn, 201)
       assert %{"message" => "You've successfully logged in."} = json_response(conn, 200)
+    end
+
+    test "POST /api/logout logs out a logged in user", %{conn: conn, user: user} do
+      conn = post(conn, "/api/login", %{username: "testuser", password: "testpassword"})
+      conn = post(conn, "/api/logout")
+      assert %{"message" => "LOGOUT_SUCCESS"} === json_response(conn, 200)
     end
   end
 end

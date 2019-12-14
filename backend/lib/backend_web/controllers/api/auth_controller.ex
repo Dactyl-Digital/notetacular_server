@@ -1,6 +1,11 @@
 defmodule BackendWeb.AuthController do
   use BackendWeb, :controller
+  import Backend.AuthPlug
   import Bamboo
+
+  # NOTE: this plug will only be ran for the logout controller within this module
+  # Thanks to the handy TIL posts https://til.hashrocket.com/posts/ee98c8a632-use-elixir-plug-for-only-some-controller-actions
+  plug(:authorize_user when action in [:logout])
 
   def csrf(conn, _params) do
     csrf_token = get_csrf_token()
@@ -61,15 +66,22 @@ defmodule BackendWeb.AuthController do
         conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
     end
   end
+
+  def logout(conn, _params) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, "Successfully removed the remove_hashed_remember_token from user's credentials."} <-
+           Accounts.remove_hashed_remember_token(current_user.user_id) do
+      conn
+      |> delete_session(:session_data)
+      |> put_status(200)
+      |> json(%{message: "LOGOUT_SUCCESS"})
+    else
+      {:error, "Unable to retrieve the credential."} ->
+        conn |> put_status(500) |> json(%{message: "Invalid Request."})
+
+      {:error, "Oops, something went wrong."} ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
 end
-
-# TODO:
-# examples taken from budgetapp:
-
-# def logout_user(conn) do
-#   %{email: email} = get_session(conn, :session_token)
-
-#   email
-#   |> CredentialServer.remove_hashed_remember_token()
-#   |> logout_response(conn)
-# end

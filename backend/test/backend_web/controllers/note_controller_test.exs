@@ -116,6 +116,13 @@ defmodule BackendWeb.NoteControllerTest do
       # assert Enum.at(notes, 0).id === id
     end
 
+    # TODO: Figure out why this test is failing.... I cross checked it against
+    # the similar test in topic_controller_test.exs and I'm not seeing where the error could be...
+    # However, the clientside is able to invoke this controller with no errors at all...
+    # error is:
+    # ** (DBConnection.EncodeError) Postgrex expected an integer in -9223372036854775808..9223372036854775807,
+    # got "742". Please make sure the value you are passing matches the definition in your table or in your
+    # query or convert the value accordingly.
     test "GET /api/note lists all of the notes nested in a topics's topic_id_list",
          %{conn: conn, user: user, topic_id_list: topic_id_list} do
       conn = post(conn, "/api/login", %{username: "testuser", password: "testpassword"})
@@ -137,7 +144,7 @@ defmodule BackendWeb.NoteControllerTest do
       [%Topic{notes: note_id_list}] =
         Notebooks.list_topics(%{
           requester_id: user.id,
-          topic_id_list: topic_id_list |> Enum.map(&Integer.to_string/1),
+          topic_id_list: topic_id_list,
           limit: 20,
           offset: 0
         })
@@ -200,8 +207,11 @@ defmodule BackendWeb.NoteControllerTest do
       assert id === note.id
 
       assert %{
-               content_markdown: %{"text" => "Here is some test text."},
-               content_text: "Here is some test text."
+               content_markdown: %{"text" => "Here is some test text."}
+               #  content_text: [
+               #    %Postgrex.Lexeme{positions: [{4, nil}], word: "test"},
+               #    %Postgrex.Lexeme{positions: [{5, nil}], word: "text"}
+               #  ]
              } = note
     end
   end
