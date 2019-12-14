@@ -339,15 +339,5 @@ defmodule NotebooksTest do
 
       assert nil === Repo.get(NoteTimer, id)
     end
-
-    # TODO: Need to test the listing stuffs.
-    # NOTE: listing sub_cats
-    # shared_notebook_list = Notebooks.list_shared_notebooks(%{user_id: read_only_notebook_shareuser.user_id, limit: 10, offset: 0})
-    # assert [
-    #   %Notebook{id: read_only_shared_notebook_id, owner_id: owner1_id},
-    #   %Notebook{id: write_enabled_shared_notebook_id, owner_id: owner2_id}
-
-    # assert [%SubCategory{id: sub_category_id}] = Notebooks.list_sub_categories(%{sub_category_id_list: sub_category_id_list, limit: 10, offset: 0})
-    # assert sub_category_id === Enum.at(sub_category_id_list, 0)
   end
 end

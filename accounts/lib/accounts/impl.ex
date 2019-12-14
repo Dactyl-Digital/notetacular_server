@@ -114,4 +114,26 @@ defmodule Accounts.Impl do
     )
     |> Repo.update()
   end
+
+  def remove_hashed_remember_token(user_id) do
+    IO.puts("removing hashed remember token")
+    IO.inspect(user_id)
+    # credential = Repo.get_by(Dbstore.Credential, user_id: 1)
+    update_query =
+      from(c in Credential,
+        where: c.user_id == ^user_id,
+        update: [set: [hashed_remember_token: nil]]
+      )
+
+    case update_query |> Repo.update_all([]) do
+      {1, nil} ->
+        {:ok, "Successfully removed the remove_hashed_remember_token from user's credentials."}
+
+      {_, nil} ->
+        {:error, "Unable to retrieve the credential."}
+
+      _ ->
+        {:error, "Oops, something went wrong."}
+    end
+  end
 end

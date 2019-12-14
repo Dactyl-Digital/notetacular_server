@@ -6,7 +6,6 @@ defmodule Dbstore.Repo.Migrations.CreateNotes do
       add(:title, :string, null: false)
       add(:content_markdown, :map)
       add(:content_text, :tsvector)
-      # add(:content_text_vector, :tsvector)
       add(:order, :integer, null: false)
       add(:tags, {:array, :string}, default: [])
       add(:topic_id, references(:topics), on_delete: :delete_all)
@@ -14,9 +13,8 @@ defmodule Dbstore.Repo.Migrations.CreateNotes do
       timestamps(type: :utc_datetime)
     end
 
-    # execute(
+    # Was in a SO post.. Suppose this would be necessary for converting any existing values to a Tsvector
     #   "UPDATE notes SET content_text_vector = to_tsvector('english', concat_ws(' ', content_text))"
-    # )
 
     create(index("notes", :id))
     create(index(:notes, [:content_text], using: :gin))

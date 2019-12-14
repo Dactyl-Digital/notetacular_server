@@ -438,22 +438,24 @@ defmodule Notebooks.Impl do
 
   defp list_notes_query(%{note_id_list: note_id_list, limit: limit, offset: offset} = params) do
     from(
-      n in "notes",
+      n in Note,
       where: n.id in ^note_id_list,
-      order_by: [desc: n.updated_at],
+      preload: :note_timers,
       limit: ^limit,
       offset: ^offset,
-      select: %{
-        id: n.id,
-        topic_id: n.topic_id,
-        title: n.title,
-        order: n.order,
-        tags: n.tags,
-        content_markdown: n.content_markdown,
-        inserted_at: n.inserted_at,
-        updated_at: n.updated_at
-      }
-    ) |> Repo.all
+      # select: %Note{
+      #   id: n.id,
+      #   topic_id: n.topic_id,
+      #   title: n.title,
+      #   order: n.order,
+      #   tags: n.tags,
+      #   content_markdown: n.content_markdown,
+      #   inserted_at: n.inserted_at,
+      #   updated_at: n.updated_at,
+      # },
+      select: map(n,[:id, :topic_id, :title, :order, :tags, :content_markdown, :inserted_at, :updated_at, note_timers: [:id]]),
+      order_by: [desc: n.updated_at],
+    ) |> IO.inspect |> Repo.all |> IO.inspect
   end
 
   def update_note_title(%{requester_id: requester_id, note_id: note_id} = params) do
@@ -612,6 +614,40 @@ defmodule Notebooks.Impl do
         resource_id: note_id,
         resource_type: :note,
       }, success_fn, fail_fn)
+  end
+
+  # TODO: write a test for this
+  def list_note_timers(%{
+    requester_id: requester_id,
+    note_timer_id_list: note_timer_id_list,
+    limit: limit,
+    offset: offset
+  } = params) when length(note_timer_id_list) > 0 do
+    success_fn = (fn -> list_note_timers_query(params) end)
+    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                operation: :read,
+                notebook_id: notebook_id,
+                requester_id: requester_id,
+                success_fn: success_fn
+              }) end)
+    check_notebook_access_authorization(%{
+      requester_id: requester_id,
+      resource_id: Enum.at(note_timer_id_list, 0),
+      resource_type: :note_timer,
+    }, success_fn, fail_fn)
+  end
+
+  def list_note_timers(_params), do: {:error, "note_timer_id_list must be greater than 0"}
+
+  # TODO: Make necessary changes to list note timers
+  defp list_note_timers_query(%{note_timer_id_list: note_timer_id_list, limit: limit, offset: offset} = params) do
+    from(
+      nt in NoteTimer,
+      where: nt.id in ^note_timer_id_list,
+      order_by: [desc: nt.updated_at],
+      limit: ^limit,
+      offset: ^offset
+    ) |> Repo.all
   end
 
   @doc """

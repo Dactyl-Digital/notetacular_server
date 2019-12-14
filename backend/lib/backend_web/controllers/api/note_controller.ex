@@ -173,6 +173,44 @@ defmodule BackendWeb.NoteController do
     end
   end
 
+  @doc """
+  A GET to list note timers associated within a parent note
+
+  Example URL:
+  "/api/note-timer?limit=20&offset=0"
+  """
+  def list_note_timers(%{query_params: %{"limit" => limit, "offset" => offset}} = conn, %{
+        "note_timer_id_list" => note_timer_id_list
+      }) do
+    %{current_user: current_user} = conn.assigns
+
+    with note_timers <-
+           Notebooks.list_note_timers(%{
+             requester_id: current_user.user_id,
+             # NOTE: This is to compensate for the list_notes_query.
+             # Wanted to exclude content_text... as loading it at the moment seems to be impossible.
+             # In order to exclude that field from the retrieved notes... I can only use a select statement.
+             # which doesn't allow me to use a sub_query to fetch an array of the note_timer notes.
+             # So the compromise is that I can only retrieve note_timer_ids as [%{id: 1}, %{id: 2}]
+             # |> Enum.map(fn %{id: id} -> String.to_integer(id) end),
+             note_timer_id_list: note_timer_id_list |> Enum.map(&String.to_integer/1),
+             limit: limit,
+             offset: offset
+           }) do
+      conn
+      |> put_status(200)
+      |> json(%{
+        message: "Successfully listed note timers!",
+        data: %{
+          note_timers: note_timers
+        }
+      })
+    else
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
+
   def update_note_timer(
         conn,
         %{
