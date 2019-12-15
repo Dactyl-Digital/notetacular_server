@@ -2,6 +2,9 @@
     <p>The email: <%= @email %>
     <br/>
     <%# <p>The link: <%= BackendWeb.Router.Helpers.auth_path(BackendWeb.Endpoint, :verify_email, email_verification_token: @email_verification_token, email: @email) %></p> %>
+    <%# NOTE: THis is the old link before attempting to provide the front end url %>
+    <%# "#{BackendWeb.Endpoint.url}#{BackendWeb.Router.Helpers.auth_path(BackendWeb.Endpoint, :verify_email, email_verification_token: @email_verification_token, email: @email)}" %>
     <br/>
-    <%= link "Verify your email!", to: "#{BackendWeb.Endpoint.url}#{BackendWeb.Router.Helpers.auth_path(BackendWeb.Endpoint, :verify_email, email_verification_token: @email_verification_token, email: @email)}" %>
+    <%# TODO: Dynamically change the "http://localhost:8000" based on whether in dev or prod %>
+    <%= link "Verify your email!", to: "http://localhost:8000/app#{BackendWeb.Router.Helpers.auth_path(BackendWeb.Endpoint, :verify_email, email_verification_token: @email_verification_token, email: @email)}" %>
 </div>
