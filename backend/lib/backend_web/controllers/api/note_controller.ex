@@ -214,14 +214,13 @@ defmodule BackendWeb.NoteController do
   def update_note_timer(
         conn,
         %{
-          "requester_id" => requester_id,
           "note_timer_id" => note_timer_id,
           "updates" => updates
         } = params
       ) do
     %{current_user: current_user} = conn.assigns
 
-    with {:ok, %NoteTimer{} = note_timer} <-
+    with {:ok, data} <-
            Notebooks.update_note_timer(%{
              requester_id: current_user.user_id,
              note_timer_id: note_timer_id,
@@ -231,7 +230,7 @@ defmodule BackendWeb.NoteController do
       |> put_status(201)
       |> json(%{
         message: "Successfully updated note timer!",
-        data: note_timer
+        data: data
       })
     else
       {:error, "Unable to retrieve the note timer."} ->
@@ -244,14 +243,14 @@ defmodule BackendWeb.NoteController do
 
   def delete_note_timer(
         conn,
-        %{"note_timer_id" => note_timer_id} = params
+        %{"id" => id} = params
       ) do
     %{current_user: current_user} = conn.assigns
 
     with {:ok, %NoteTimer{} = note_timer} <-
            Notebooks.delete_note_timer(%{
              requester_id: current_user.user_id,
-             note_timer_id: note_timer_id
+             note_timer_id: id |> String.to_integer()
            }) do
       conn
       |> put_status(201)

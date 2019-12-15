@@ -97,8 +97,9 @@ defmodule BackendWeb.Router do
     post("/note-timer", NoteController, :create_note_timer)
     get("/note-timer", NoteController, :list_note_timers)
     patch("/note-timer", NoteController, :update_note_timer)
-    delete("/note-timer", NoteController, :delete_note_timer)
     options("/note-timer", NoteController, :options)
+    delete("/note-timer/:id", NoteController, :delete_note_timer)
+    options("/note-timer/:id", NoteController, :options)
   end
 
   scope "/admin", BackendWeb do
