@@ -700,17 +700,17 @@ defmodule Notebooks.Impl do
       }, success_fn, fail_fn)
   end
 
-  defp generate_update_query(:note_timer, %{note_timer_id: note_timer_id}, %{elapsed_seconds: elapsed_seconds, description: nil}) do
+  defp generate_update_query(:note_timer, %{note_timer_id: note_timer_id}, %{"elapsed_seconds" => elapsed_seconds}) do
     query = from(nt in NoteTimer, where: nt.id == ^note_timer_id, update: [set: [elapsed_seconds: ^elapsed_seconds]])
     {%{elapsed_seconds: elapsed_seconds, id: note_timer_id}, query}
   end
 
-  defp generate_update_query(:note_timer, %{note_timer_id: note_timer_id}, %{elapsed_seconds: nil, description: description}) do
+  defp generate_update_query(:note_timer, %{note_timer_id: note_timer_id}, %{"description" => description}) do
     query = from(nt in NoteTimer, where: nt.id == ^note_timer_id, update: [set: [description: ^description]])
     {%{description: description, id: note_timer_id}, query}
   end
 
-  defp generate_update_query(:note_timer, %{note_timer_id: note_timer_id}, %{elapsed_seconds: elapsed_seconds, description: description} = updates) do
+  defp generate_update_query(:note_timer, %{note_timer_id: note_timer_id}, %{"elapsed_seconds" => elapsed_seconds, "description" => description} = updates) do
     query = from(nt in NoteTimer, where: nt.id == ^note_timer_id, update: [set: [elapsed_seconds: ^elapsed_seconds, description: ^description]])
     {Map.put(updates, :id, note_timer_id), query}
   end

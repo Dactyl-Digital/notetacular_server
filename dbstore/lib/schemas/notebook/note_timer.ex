@@ -7,6 +7,8 @@ defmodule Dbstore.NoteTimer do
     # NOTE: timer is the millisecond representation of the time elasped thus far.
     field(:elapsed_seconds, :integer)
     field(:description, :string)
+    # TODO: Possibly remove this... I believe I added it so that the timers can be rearranged.
+    # but changing the order will be too cumbersome when a timer is deleted. So it's no big deal.
     field(:timer_count, :integer)
 
     # TODO:
