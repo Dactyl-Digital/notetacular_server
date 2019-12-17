@@ -5,7 +5,8 @@ defmodule Dbstore.Note do
   schema "notes" do
     field(:title, :string)
     field(:content_markdown, :map)
-    field(:content_text, Dbstore.Ecto.Types.TSVectorType)
+    field(:content_text, :string)
+    field(:content_text_vector, Dbstore.Ecto.Types.TSVectorType)
     field(:order, :integer)
     field(:tags, {:array, :string})
 
@@ -23,9 +24,8 @@ defmodule Dbstore.Note do
 
   def update_content_changeset(note, params \\ %{}) do
     note
-    |> cast(params, [:content_markdown, :content_text])
-    |> IO.inspect()
-    |> validate_required([:content_markdown, :content_text])
+    |> cast(params, [:content_markdown, :content_text, :content_text_vector])
+    |> validate_required([:content_markdown, :content_text, :content_text_vector])
 
     # TODO: Will need to write a customer validator for the content_markdown?
     # |> validate_length(:content_markdown, min: 20)

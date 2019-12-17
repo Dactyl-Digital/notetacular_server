@@ -483,6 +483,37 @@ defmodule Notebooks.Impl do
   end
 
   @doc """
+  Notebooks.search_note_content("Fuck")
+
+  SELECT id, topic_id, title, content_text FROM notes WHERE notes.content_text @@ to_tsquery($1) ["Fuck"]
+  {:ok,
+  %Postgrex.Result{
+    columns: ["id", "topic_id", "title", "content_text"],
+    command: :select,
+    connection_id: 28610,
+    messages: [],
+    num_rows: 2,
+    rows: [
+      [1, 4, "Ichi", "This has been some fucking shitttt mannnn"],
+      [3, 4, "ThirdOne", "Need another fuck to search for"]
+    ]
+  }}
+  """
+  def search_note_content(search_text) do
+    # SO Post also implemented it like so:
+    # defp filter_by(query, :search_string, %{search_string: search_string} = args) do
+    #   tsquery_string = StringHelpers.to_tsquery_string(search_string)
+
+    #   from d in query,
+    #     where: fragment("? @@ to_tsquery('english', ?)", d.search_tsvector, ^tsquery_string)
+    # end
+
+    Ecto.Adapters.SQL.query(
+      Dbstore.Repo, "SELECT id, topic_id, title, content_text FROM notes WHERE notes.content_text @@ plainto_tsquery($1)", [search_text]
+    )
+  end
+
+  @doc """
     NOTE: On the client side... The user will have a button
     which will enable a mass update, instead of updating
     the note order every time a note is dragged and dropped.
@@ -517,7 +548,7 @@ defmodule Notebooks.Impl do
 
   defp retrieve_and_update_note_content(%{note_id: note_id, content_markdown: content_markdown, content_text: content_text} = params) do
     # TODO: Add updated_at: DateTime.utc_now() // Need to require DateTime in this module
-    update_query = from(n in Note, where: n.id == ^note_id, update: [set: [content_markdown: ^content_markdown, content_text: ^content_text]])
+    update_query = from(n in Note, where: n.id == ^note_id, update: [set: [content_markdown: ^content_markdown, content_text: ^content_text, content_text_vector: ^content_text]])
     case update_query |> Repo.update_all([]) do
       {1, nil} ->
         {:ok, "Successfully updated the note!"}
