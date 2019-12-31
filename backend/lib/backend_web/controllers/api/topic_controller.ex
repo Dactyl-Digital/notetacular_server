@@ -62,6 +62,29 @@ defmodule BackendWeb.TopicController do
     end
   end
 
+  def delete_topic(
+        conn,
+        %{"id" => id} = params
+      ) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, %Topic{} = topic} <-
+           Notebooks.delete_topic(%{
+             requester_id: current_user.user_id,
+             topic_id: id |> String.to_integer()
+           }) do
+      conn
+      |> put_status(200)
+      |> json(%{
+        message: "Successfully deleted the topic!",
+        data: topic
+      })
+    else
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
+
   # TODO: test add_tags and remove_tag
   def add_tags(conn, %{"topic_id" => topic_id, "tags" => tags}) do
     %{current_user: current_user} = conn.assigns

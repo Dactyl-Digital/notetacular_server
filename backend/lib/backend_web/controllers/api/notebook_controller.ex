@@ -53,4 +53,27 @@ defmodule BackendWeb.NotebookController do
         conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
     end
   end
+
+  def delete_notebook(
+        conn,
+        %{"id" => id} = params
+      ) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, %Notebook{} = notebook} <-
+           Notebooks.delete_notebook(%{
+             requester_id: current_user.user_id,
+             notebook_id: id |> String.to_integer()
+           }) do
+      conn
+      |> put_status(200)
+      |> json(%{
+        message: "Successfully deleted the notebook!",
+        data: notebook
+      })
+    else
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
 end

@@ -14,12 +14,26 @@ RUN mix local.hex --force && \
 WORKDIR /opt/app
 
 # Copy over all the necessary application files and directories
-COPY ./backend/config ./config
-COPY ./backend/lib ./lib
-COPY ./backend/priv ./priv
-COPY ./backend/mix.exs .
-COPY ./backend/mix.lock .
+COPY ./backend/config ./backend/config
+COPY ./backend/lib ./backend/lib
+COPY ./backend/rel ./backend/rel
+COPY ./backend/priv ./backend/priv
+COPY ./backend/mix.exs ./backend
+COPY ./backend/mix.lock ./backend
 
+COPY ./dbstore ./dbstore
+COPY ./auth ./auth
+COPY ./accounts ./accounts
+COPY ./notebooks ./notebooks
+
+RUN apk update
+# RUN apk add postgresql
+# RUN apk add postgresql-contrib
+RUN apk add --no-cache --upgrade bash
+RUN apk add --no-cache make gcc libc-dev argon2
+# RUN apk add gcc
+# RUN apk add make
+WORKDIR ./backend
 # Fetch the application dependencies and build the application
 RUN mix deps.get
 RUN mix deps.compile
@@ -41,7 +55,7 @@ FROM bitwalker/alpine-elixir:1.9.2
 
 # Copy over the build artifact from the previous step and switch to non root user
 WORKDIR /opt/app/
-COPY --from=builder /opt/app/_build .
+COPY --from=builder /opt/app/backend/_build .
 RUN chown -R default: ./prod
 USER default
 

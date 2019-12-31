@@ -77,7 +77,7 @@ defmodule Accounts.Impl do
   def validate_user_input(:email, email) do
     with trimmed_str <- String.trim(email),
          true <-
-           validate_length_between(trimmed_str, 0, 8, fn _, _ ->
+           validate_length_between(trimmed_str, 8, 60, fn _, _ ->
              @email_length_error_msg
            end),
          true <- String.match?(trimmed_str, @email_regex) do
@@ -117,9 +117,12 @@ defmodule Accounts.Impl do
   #################################
 
   def create_user(%{email: email, username: username, password: password} = params) do
+    IO.puts("IN CREATE_USER")
+
     [[:username, username], [:email, email], [:password, password]]
     |> Enum.map(fn [key, value] -> validate_user_input(key, value) end)
     |> Enum.filter(fn result -> result !== true end)
+    |> IO.inspect()
     |> create_user_or_fail(params)
   end
 
@@ -128,6 +131,8 @@ defmodule Accounts.Impl do
   Then all validations were performed successfully.
   """
   defp create_user_or_fail([], %{email: email, username: username, password: password}) do
+    IO.puts("IN create_user_or_fail")
+
     %User{}
     |> User.changeset(%{
       username: username,
@@ -139,6 +144,8 @@ defmodule Accounts.Impl do
         subscribed_until: Timex.now() |> Timex.shift(days: 31)
       }
     })
+    |> Repo.insert()
+    |> IO.inspect()
     |> Helpers.handle_creation_result()
   end
 

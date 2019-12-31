@@ -1,5 +1,6 @@
 use Mix.Config
 
+IO.puts("INSIDE ./backend PROD CONFIG!!!")
 # For production, we often load configuration from external
 # sources, such as your system environment. For this reason,
 # you won't find the :http configuration below, but set inside
@@ -15,17 +16,43 @@ use Mix.Config
 # which you typically run after static files are built.
 config :backend, BackendWeb.Endpoint,
   load_from_system_env: true,
-  # Should these values be kept out of version control?
   url: [
     host: Application.get_env(:backend, :app_hostname),
     port: Application.get_env(:backend, :app_port)
   ]
 
+config :backend, :ecto_repos, [Dbstore.Repo]
+
+config :dbstore, Dbstore.Repo,
+  adapter: Ecto.Adapters.Postgres,
+  database: "notastical_test",
+  username: "jamesgood",
+  password: "postgres",
+  hostname: "localhost",
+  pool_size: 12
+
+# config :dbstore, Dbstore.Repo,
+#   adapter: Ecto.Adapters.Postgres,
+#   database: System.get_env("RDS_DB_NAME"),
+#   username: System.get_env("RDS_USERNAME"),
+#   password: System.get_env("RDS_PASSWORD"),
+#   hostname: System.get_env("RDS_HOSTNAME"),
+#   pool_size: 20,
+#   show_sensitive_data_on_connection_error: true
+
+# config :backend, Backend.Mailer,
+#   adapter: Bamboo.MandrillAdapter,
+#   # Application.get_env(:backend, :mandrill_key)
+#   api_key: System.get_env("MANDRILL_KEY")
+
 # NOTE: Upon starting the released app. It said to remove this.
 # cache_static_manifest: "priv/static/cache_manifest.json"
 
 # Do not print debug messages in production
-config :logger, level: :info
+# NOTE: Jose Valim mentions in this issue that it is okay to leave this on in prod...
+# What does it do?
+# https://github.com/elixir-ecto/postgrex/issues/446#issuecomment-472029316
+config :logger, handle_sasl_reports: true
 
 # NOTE: Copied this over from the dev.to elixir/docker deployment blog post
 #       Starting the mix release wouldn't have the app listening on the port

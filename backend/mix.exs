@@ -46,3 +46,9 @@ defmodule Backend.Mixfile do
     ]
   end
 end
+
+# The start up command you need
+# sudo docker run -e SECRET_KEY_BASE="areallysecretkey" -e APP_PORT=4000 -e APP_HOSTNAME="0.0.0.0" -e MAILGUN_KEY="1cfd6e1f436192703bd90b3ef31c17e0-a9919d1f-c462d89e" -e MAILGUN_DOMAIN="mg.notastical.com" -e RDS_DB_NAME="testdb" -e RDS_HOSTNAME="testdb.cv5qbn0k0lva.us-east-2.rds.amazonaws.com" -e RDS_USERNAME="postgres" -e RDS_PASSWORD="postgrespassword" ca7847bcdb28
+
+# The psql command you need
+# psql -h testdb.cv5qbn0k0lva.us-east-2.rds.amazonaws.com -U postgres -p 5432

@@ -5,7 +5,7 @@ defmodule Dbstore.Repo.Migrations.CreateNotes do
     create table("notes") do
       add(:title, :string, null: false)
       add(:content_markdown, :map)
-      add(:content_text, :string)
+      add(:content_text, :text)
       add(:content_text_vector, :tsvector)
       add(:order, :integer, null: false)
       add(:tags, {:array, :string}, default: [])

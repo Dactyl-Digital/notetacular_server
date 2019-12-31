@@ -78,4 +78,27 @@ defmodule BackendWeb.SubCategoryController do
         conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
     end
   end
+
+  def delete_sub_category(
+        conn,
+        %{"id" => id} = params
+      ) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, %SubCategory{} = sub_category} <-
+           Notebooks.delete_sub_category(%{
+             requester_id: current_user.user_id,
+             sub_category_id: id |> String.to_integer()
+           }) do
+      conn
+      |> put_status(200)
+      |> json(%{
+        message: "Successfully deleted the sub category!",
+        data: sub_category
+      })
+    else
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
 end

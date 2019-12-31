@@ -11,8 +11,18 @@ config :backend, BackendWeb.Endpoint,
   debug_errors: true,
   code_reloader: true,
   check_origin: false,
-  watchers: [node: ["node_modules/brunch/bin/brunch", "watch", "--stdin",
-                    cd: Path.expand("../assets", __DIR__)]]
+  watchers: [
+    node: [
+      "node_modules/brunch/bin/brunch",
+      "watch",
+      "--stdin",
+      cd: Path.expand("../assets", __DIR__)
+    ]
+  ]
+
+IO.puts("Inside ./backend dev config")
+
+config :backend, :ecto_repos, [Dbstore.Repo]
 
 config :dbstore, Dbstore.Repo,
   adapter: Ecto.Adapters.Postgres,
@@ -22,9 +32,8 @@ config :dbstore, Dbstore.Repo,
   hostname: "localhost",
   pool_size: 10
 
-config :backend, Backend.Mailer,
-  adapter: Bamboo.LocalAdapter
-  
+config :backend, Backend.Mailer, adapter: Bamboo.LocalAdapter
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed

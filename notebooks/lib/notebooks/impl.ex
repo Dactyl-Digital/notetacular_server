@@ -6,6 +6,9 @@ defmodule Notebooks.Impl do
   alias Ecto.Changeset
   alias Dbstore.{Repo, Helpers, Notebook, SubCategory, Topic, Note, NoteTimer, NotebookShareuser}
 
+  @valid_title_regex ~r/[A-Za-z0-9_-]+/
+  @valid_tag_regex ~r/[A-Za-z0-9_-]+/
+
   # Status Codes
   @created_code 201
   @bad_request_code 400
@@ -17,6 +20,12 @@ defmodule Notebooks.Impl do
   @something_went_wrong_message "Oops... Something went wrong. Please try again."
   @permission_not_found_message "Permission not found"
 
+  @invalid_title_error_msg "title is invalid."
+  @title_length_error_msg "must be between 4 and 40 characters."
+  @title_length_min_error_msg "must be greater than 4 characters."
+  @title_length_max_error_msg "must be less than 40 characters."
+  @tag_length_min_error_msg "must be greater than 3 characters."
+  @tag_length_max_error_msg "must be less than 20 characters."
   # TODO (After the core feature set has completely
   # been implemented, then I can add the notebook_shareuser
   # functionality.
@@ -29,15 +38,99 @@ defmodule Notebooks.Impl do
   # contains the old content, and a row for the new changes.
   # Perhaps easiest to implement these as just a JSONB.
 
+  #########################
+  # Validation Functions
+  #########################
+  def validate_length_between(str, min, max, msgFn) do
+    satisfies_min? = String.length(str) >= min
+    satisfies_max? = String.length(str) <= max
+
+    case satisfies_min? && satisfies_max? do
+      true ->
+        true
+
+      false ->
+        msgFn.(satisfies_min?, satisfies_max?)
+    end
+  end
+
+  def validate_user_input(field, value) do
+    with trimmed_str <- String.trim(value),
+         true <-
+           validate_length_between(trimmed_str, 4, 40, fn min?, max? ->
+            title_length_error_message(min?, max?)
+           end),
+         true <- String.match?(trimmed_str, @valid_title_regex) do
+      true
+    else
+      @title_length_min_error_msg ->
+        %{field: String.downcase(field), message: "#{field} #{@title_length_min_error_msg}"}
+
+      @title_length_max_error_msg ->
+        %{field: String.downcase(field), message: "#{field} #{@title_length_max_error_msg}"}
+
+      false ->
+        %{field: String.downcase(field), message: "#{field} #{@invalid_error_msg}"}
+    end
+  end
+
+  def validate_user_input(field, value, position) do
+    with trimmed_str <- String.trim(value),
+         true <-
+           validate_length_between(trimmed_str, 3, 20, fn min?, max? ->
+            tag_length_error_message(min?, max?)
+           end),
+         true <- String.match?(trimmed_str, @valid_tag_regex) do
+      true
+    else
+      @title_length_min_error_msg ->
+        %{field: String.downcase(field), message: "#{field} #{@tag_length_min_error_msg}", position: position}
+
+      @title_length_max_error_msg ->
+        %{field: String.downcase(field), message: "#{field} #{@tag_length_max_error_msg}", position: position}
+
+      false ->
+        %{field: String.downcase(field), message: "#{field} #{@invalid_error_msg}", position: position}
+    end
+  end
+
+  defp title_length_error_message(false, true), do: @title_length_min_error_msg
+
+  defp title_length_error_message(true, false),
+    do: @title_length_max_error_msg
+
+    defp tag_length_error_message(false, true), do: @tag_length_min_error_msg
+
+  defp tag_length_error_message(true, false),
+    do: @tag_length_max_error_msg
+
+  ##########################
+  # DOMAIN FUNCTIONS
+  ##########################
+
+  @doc """
+  If the list received is empty.
+  Then all validations were performed successfully.
+  """
+  defp create_or_fail([], handle_create_fn), do: handle_create_fn.()
+  defp create_or_fail(errors, _), do: {:error, errors}
+
   # *************************
   # Notebook Resource Actions
   # *************************
   # TODO: Implement regex check on title
-  def create_notebook(%{owner_id: owner_id, title: _title} = params) do
-    %Notebook{}
-    |> Notebook.changeset(params)
-    |> Repo.insert()
-    |> Helpers.handle_creation_result()
+  def create_notebook(%{owner_id: owner_id, title: title} = params) do
+    handle_create_fn = (fn ->
+      %Notebook{}
+      |> Notebook.changeset(params)
+      |> Repo.insert()
+      |> Helpers.handle_creation_result()
+    end)
+
+    [["Title", title]]
+    |> Enum.map(fn [key, value] -> validate_user_input(key, value) end)
+    |> Enum.filter(fn result -> result !== true end)
+    |> create_or_fail(handle_create_fn)
   end
 
   # TODO: Need to create a test that ensures a list of sub_category_ids is on
@@ -204,18 +297,25 @@ defmodule Notebooks.Impl do
     title: title,
     notebook_id: notebook_id
   } = params) do
-    success_fn = (fn -> %SubCategory{} |> SubCategory.changeset(params) |> Repo.insert end)
-    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
-                operation: :write,
-                notebook_id: notebook_id,
-                requester_id: requester_id,
-                success_fn: success_fn
-              }) end)
-    check_notebook_access_authorization(%{
-      requester_id: requester_id,
-      resource_id: notebook_id,
-      resource_type: :notebook,
-    }, success_fn, fail_fn)
+    handle_create_fn = (fn ->
+      success_fn = (fn -> %SubCategory{} |> SubCategory.changeset(params) |> Repo.insert end)
+      fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                  operation: :write,
+                  notebook_id: notebook_id,
+                  requester_id: requester_id,
+                  success_fn: success_fn
+                }) end)
+      check_notebook_access_authorization(%{
+        requester_id: requester_id,
+        resource_id: notebook_id,
+        resource_type: :notebook,
+      }, success_fn, fail_fn)
+    end)
+
+    [["Title", title]]
+    |> Enum.map(fn [key, value] -> validate_user_input(key, value) end)
+    |> Enum.filter(fn result -> result !== true end)
+    |> create_or_fail(handle_create_fn)
   end
 
   @doc """
@@ -305,18 +405,25 @@ defmodule Notebooks.Impl do
     sub_category_id: sub_category_id,
     title: title
   } = params) do
-    success_fn = (fn -> %Topic{} |> Topic.changeset(params) |> Repo.insert end)
-    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
-                operation: :read,
-                notebook_id: notebook_id,
-                requester_id: requester_id,
-                success_fn: success_fn
-              }) end)
-    check_notebook_access_authorization(%{
-      requester_id: requester_id,
-      resource_id: sub_category_id,
-      resource_type: :sub_category,
-    }, success_fn, fail_fn)
+    handle_create_fn = (fn ->
+      success_fn = (fn -> %Topic{} |> Topic.changeset(params) |> Repo.insert end)
+      fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                  operation: :read,
+                  notebook_id: notebook_id,
+                  requester_id: requester_id,
+                  success_fn: success_fn
+                }) end)
+      check_notebook_access_authorization(%{
+        requester_id: requester_id,
+        resource_id: sub_category_id,
+        resource_type: :sub_category,
+      }, success_fn, fail_fn)
+    end)
+
+    [["Title", title]]
+    |> Enum.map(fn [key, value] -> validate_user_input(key, value) end)
+    |> Enum.filter(fn result -> result !== true end)
+    |> create_or_fail(handle_create_fn)
   end
 
   def list_topics(%{
@@ -385,18 +492,25 @@ defmodule Notebooks.Impl do
     order: order,
     topic_id: topic_id
   } = params) do
-    success_fn = (fn -> %Note{} |> Note.changeset(params) |> Repo.insert end)
-    fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
-                operation: :write,
-                notebook_id: notebook_id,
-                requester_id: requester_id,
-                success_fn: success_fn
-              }) end)
-    check_notebook_access_authorization(%{
-      requester_id: requester_id,
-      resource_id: topic_id,
-      resource_type: :topic,
-    }, success_fn, fail_fn)
+    handle_create_fn = (fn ->
+      success_fn = (fn -> %Note{} |> Note.changeset(params) |> Repo.insert end)
+      fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                  operation: :write,
+                  notebook_id: notebook_id,
+                  requester_id: requester_id,
+                  success_fn: success_fn
+                }) end)
+      check_notebook_access_authorization(%{
+        requester_id: requester_id,
+        resource_id: topic_id,
+        resource_type: :topic,
+      }, success_fn, fail_fn)
+    end)
+
+    [["Title", title]]
+    |> Enum.map(fn [key, value] -> validate_user_input(key, value) end)
+    |> Enum.filter(fn result -> result !== true end)
+    |> create_or_fail(handle_create_fn)
   end
 
   def retrieve_note(%{requester_id: requester_id, note_id: note_id} = params) do
@@ -468,18 +582,42 @@ defmodule Notebooks.Impl do
       content_markdown: content_markdown,
       content_text: content_text
     } = params) do
+      # IMMEDIATE TODO: What regex will help prevent XSS vuln..
+      # handle_create_fn = (fn ->
+      #   success_fn = (fn -> retrieve_and_update_note_content(params) end)
+      #   fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+      #               operation: :write,
+      #               notebook_id: notebook_id,
+      #               requester_id: requester_id,
+      #               success_fn: success_fn
+      #             }) end)
+      #   check_notebook_access_authorization(%{
+      #     requester_id: requester_id,
+      #     resource_id: note_id,
+      #     resource_type: :note,
+      #   }, success_fn, fail_fn)
+      # end)
+
+      # [["content_text", content_text]]
+      # |> Enum.map(fn [key, value] -> validate_user_input(key, value) end)
+      # |> Enum.filter(fn result -> result !== true end)
+      # |> create_or_fail(handle_create_fn)
+
+      # TODO: Ensure str is somewhere between 0 min and 40k/50k max in length...?
+      # Perhaps 20k/30k could be more reasonable...
+      # 20k seems like it would be a reasonable amount.
       success_fn = (fn -> retrieve_and_update_note_content(params) end)
-      fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
-                  operation: :write,
-                  notebook_id: notebook_id,
-                  requester_id: requester_id,
-                  success_fn: success_fn
-                }) end)
-      check_notebook_access_authorization(%{
-        requester_id: requester_id,
-        resource_id: note_id,
-        resource_type: :note,
-      }, success_fn, fail_fn)
+        fail_fn = (fn notebook_id -> verify_shareduser_of_resource(%{
+                    operation: :write,
+                    notebook_id: notebook_id,
+                    requester_id: requester_id,
+                    success_fn: success_fn
+                  }) end)
+        check_notebook_access_authorization(%{
+          requester_id: requester_id,
+          resource_id: note_id,
+          resource_type: :note,
+        }, success_fn, fail_fn)
   end
 
   @doc """
@@ -498,8 +636,25 @@ defmodule Notebooks.Impl do
       [3, 4, "ThirdOne", "Need another fuck to search for"]
     ]
   }}
+
+  Recently updated to accomodate searching only a user's owned notes:
+  Notebooks.Impl.search_note_content(%{requester_id: 1, search_text: "fuck", offset: 0})
+  Offset will be maintained in client side state in order to facilitate pagination through the
+  search results. Will be reset whenever the client changes the search_text on the client side.
+  {:ok,
+  %Postgrex.Result{
+    columns: ["note_id", "topic_id", "sub_category_id", "notebook_id", "title",
+      "content_text"],
+    command: :select,
+    connection_id: 12613,
+    messages: [],
+    num_rows: 1,
+    rows: [
+      [5, 3, 2, 2, "Best Time to Buy/Sell a Stock", "content_text string...."]
+    ]
+    }}
   """
-  def search_note_content(search_text) do
+  def search_note_content(%{requester_id: requester_id, search_text: search_text, offset: offset}) do
     # SO Post also implemented it like so:
     # defp filter_by(query, :search_string, %{search_string: search_string} = args) do
     #   tsquery_string = StringHelpers.to_tsquery_string(search_string)
@@ -508,9 +663,32 @@ defmodule Notebooks.Impl do
     #     where: fragment("? @@ to_tsquery('english', ?)", d.search_tsvector, ^tsquery_string)
     # end
 
-    Ecto.Adapters.SQL.query(
-      Dbstore.Repo, "SELECT id, topic_id, title, content_text FROM notes WHERE notes.content_text @@ plainto_tsquery($1)", [search_text]
+
+    # NOTE:
+    # Old query.. Didn't query for only notes which the user owns.
+    # Ecto.Adapters.SQL.query(
+    #   Dbstore.Repo, "SELECT id, topic_id, title, content_text FROM notes WHERE notes.content_text @@ plainto_tsquery($1)", [search_text]
+    # )
+
+    query_result = Ecto.Adapters.SQL.query(
+      Dbstore.Repo, "SELECT notes.id as note_id, notes.topic_id, sub_categories.id as sub_category_id,
+      notebooks.id as notebook_id, notes.title, notes.content_text FROM notebooks, sub_categories,
+      topics, notes WHERE notebooks.owner_id = $1 and sub_categories.notebook_id = notebooks.id and
+      topics.sub_category_id = sub_categories.id and notes.topic_id = topics.id
+      and notes.content_text@@ plainto_tsquery($2) LIMIT 10 OFFSET $3", [requester_id, search_text, offset]
     )
+
+    case query_result do
+      {:ok, postgres_result} ->
+        {:ok, %{
+          columns: postgres_result.columns,
+          rows: postgres_result.rows,
+          num_rows: postgres_result.num_rows
+        }}
+
+        _ ->
+          {:err, "Oops... Something went wrong."}
+    end
   end
 
   @doc """
@@ -582,15 +760,41 @@ defmodule Notebooks.Impl do
   {:error, changeset} // W/ validation/contraint errors.
   """
   def add_tags(:topic, %{topic_id: topic_id, tags: tags} = params) do
-    topic = Repo.get(Topic, topic_id)
-    set = create_tag_mapset(Enum.concat(topic.tags, tags))
-    Topic.add_tags_changeset(topic, %{tags: MapSet.to_list(set)}) |> Repo.update
+    # TODO: Check to see if searching by tags for Topics from the UI will even
+    # be feasible...
+    # ALSO TODO: Forgot that I was also checking for length at least >= 3 on the client
+    # side as well... So the client should never really receive this error response..
+    # but still test this behavior.
+    handle_create_fn = (fn ->
+      topic = Repo.get(Topic, topic_id)
+      set = create_tag_mapset(Enum.concat(topic.tags, tags))
+      Topic.add_tags_changeset(topic, %{tags: MapSet.to_list(set)}) |> Repo.update
+    end)
+
+    tags
+    |> Enum.with_index
+    |> Enum.map(fn ({tag, idx}) -> ["Tag", tag, idx] end)
+    |> Enum.map(fn [key, value, position] -> validate_user_input(key, value, position) end)
+    |> Enum.filter(fn result -> result !== true end)
+    |> IO.inspect
+    |> create_or_fail(handle_create_fn)
   end
 
   def add_tags(:note, %{note_id: note_id, tags: tags}) do
-    note = Repo.get(Note, note_id)
-    set = create_tag_mapset(Enum.concat(note.tags, tags))
-    Note.add_tags_changeset(note, %{tags: MapSet.to_list(set)}) |> Repo.update
+    handle_create_fn = (fn ->
+      note = Repo.get(Note, note_id)
+      set = create_tag_mapset(Enum.concat(note.tags, tags))
+      Note.add_tags_changeset(note, %{tags: MapSet.to_list(set)}) |> Repo.update
+    end)
+
+
+    tags
+    |> Enum.with_index
+    |> Enum.map(fn ({tag, idx}) -> ["Tag", tag, idx] end)
+    |> Enum.map(fn [key, value, position] -> validate_user_input(key, value, position) end)
+    |> Enum.filter(fn result -> result !== true end)
+    |> IO.inspect()
+    |> create_or_fail(handle_create_fn)
   end
 
   def remove_tag(:topic, %{topic_id: topic_id, tag: tag}) do

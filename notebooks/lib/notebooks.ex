@@ -38,8 +38,8 @@ defmodule Notebooks do
   defdelegate update_note_title(params), to: Notebooks.Impl
   defdelegate update_note_content(params), to: Notebooks.Impl
   defdelegate update_note_order(note_id_and_order_list), to: Notebooks.Impl
-  defdelegate delete_note(note_id), to: Notebooks.Impl
-  defdelegate search_note_content(search_text), to: Notebooks.Impl
+  defdelegate delete_note(params), to: Notebooks.Impl
+  defdelegate search_note_content(params), to: Notebooks.Impl
 
   # **************************
   # NoteTimer Resource Actions

@@ -66,6 +66,29 @@ defmodule BackendWeb.NoteController do
     end
   end
 
+  def delete_note(
+        conn,
+        %{"id" => id} = params
+      ) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, %Note{} = note} <-
+           Notebooks.delete_note(%{
+             requester_id: current_user.user_id,
+             note_id: id |> String.to_integer()
+           }) do
+      conn
+      |> put_status(200)
+      |> json(%{
+        message: "Successfully deleted the note!",
+        data: note
+      })
+    else
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
+
   def update_note_content(
         conn,
         %{
@@ -261,6 +284,27 @@ defmodule BackendWeb.NoteController do
     else
       # {:error, "UNAUTHORIZED_REQUEST"} This is another possible return result
       # But I suppose I didn't want to explicitly return a message along the lines of this?
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
+
+  def search_notes(conn, %{search_text: search_text, offset: offset}) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, search_results} <-
+           Notebooks.search_note_content(%{
+             requester_id: current_user.user_id,
+             search_text: search_text,
+             offset: offset
+           }) do
+      conn
+      |> put_status(200)
+      |> json(%{
+        message: "Successfully searched notes!",
+        data: search_results
+      })
+    else
       _ ->
         conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
     end

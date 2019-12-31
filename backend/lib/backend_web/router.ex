@@ -12,7 +12,10 @@ defmodule BackendWeb.Router do
   pipeline :api do
     origin =
       if Mix.env() === :prod do
-        "notastical.com"
+        # NOTE: For the CORS error that was occuring in prod/
+        # Adding this array fixed it.... But which one accurately
+        # reflects the origin which my client sets in the header?
+        ["https://notastical.com", "https://www.notastical.com"]
       else
         "http://localhost:8000"
       end
@@ -55,6 +58,12 @@ defmodule BackendWeb.Router do
     # The key is that the helper function will be based on the controller name
     # i.e. Backend.Router.Helpers.auth_path(Backend.Endpoint, :verify_email, %{} = params)
     get("/verify-email", AuthController, :verify_email)
+    # WTF:
+    # Request from production client site sends request...
+    # Running production server response w/
+    # 08:33:20.420 [info] OPTIONS /api/signup
+    # 08:33:20.421 [info] Sent 204 in 922µs
+    # I never sent a 204 response in the controller.... so what gives?
     post("/signup", AuthController, :signup)
     # NOTE: using this *options* is necessary otherwise CORS issues
     #       regarding Allow-Access-Control-Headers not being set by the
@@ -68,30 +77,41 @@ defmodule BackendWeb.Router do
     # Notebook Controllers
     post("/notebook", NotebookController, :create_notebook)
     get("/notebook", NotebookController, :list_notebooks)
+    delete("/notebook/:id", NotebookController, :delete_notebook)
+    delete("/notebook/:id", NoteController, :delete_notebook)
     options("/notebook", NotebookController, :options)
+    options("/notebook/:id", NotebookController, :options)
 
     # Sub Category Controllers
     post("/sub-category", SubCategoryController, :create_sub_category)
     get("/sub-category", SubCategoryController, :list_sub_categories)
+    delete("/sub-category/:id", SubCategoryController, :delete_sub_category)
     options("/sub-category", SubCategoryController, :options)
+    options("/sub-category/:id", SubCategoryController, :options)
 
     # Topic Controllers
     post("/topic", TopicController, :create_topic)
     get("/topic", TopicController, :list_topics)
+    delete("/topic/:id", TopicController, :delete_topic)
     post("/topic/tags", TopicController, :add_tags)
     patch("/topic/tags", TopicController, :remove_tag)
     options("/topic", TopicController, :options)
     options("/topic/tags", TopicController, :options)
+    options("/topic/:id", TopicController, :options)
 
     # Note Controllers
     post("/note", NoteController, :create_note)
     get("/note", NoteController, :list_notes)
+    delete("/note/:id", NoteController, :delete_note)
     put("/note/content", NoteController, :update_note_content)
     post("/note/tags", NoteController, :add_tags)
     patch("/note/tags", NoteController, :remove_tag)
+    get("/note/search", NoteController, :search_notes)
     options("/note", NoteController, :options)
     options("/note/content", NoteController, :options)
     options("/note/tags", NoteController, :options)
+    options("/note/search", NoteController, :options)
+    options("/note/:id", NoteController, :options)
 
     # Note Timer Controllers
     post("/note-timer", NoteController, :create_note_timer)

@@ -6,5 +6,11 @@
     <%# "#{BackendWeb.Endpoint.url}#{BackendWeb.Router.Helpers.auth_path(BackendWeb.Endpoint, :verify_email, email_verification_token: @email_verification_token, email: @email)}" %>
     <br/>
     <%# TODO: Dynamically change the "http://localhost:8000" based on whether in dev or prod %>
-    <%= link "Verify your email!", to: "http://localhost:8000/app#{BackendWeb.Router.Helpers.auth_path(BackendWeb.Endpoint, :verify_email, email_verification_token: @email_verification_token, email: @email)}" %>
+    <%# <%= if Mix.env() === :prod do
+        link "Verify your email!", to: "https://www.notastical.com/app#{BackendWeb.Router.Helpers.auth_path(BackendWeb.Endpoint, :verify_email, email_verification_token: @email_verification_token, email: @email)}"
+      else
+        link "Verify your email!", to: "http://localhost:8000/app#{BackendWeb.Router.Helpers.auth_path(BackendWeb.Endpoint, :verify_email, email_verification_token: @email_verification_token, email: @email)}"
+      end
+      %>
+    <%= link "Verify your email!", to: "https://www.notastical.com/app#{BackendWeb.Router.Helpers.auth_path(BackendWeb.Endpoint, :verify_email, email_verification_token: @email_verification_token, email: @email)}" %>
 </div>

@@ -4,7 +4,7 @@ defmodule Backend.Email do
   alias Dbstore.{User, Credential}
 
   # TODO: Use Official Notastical email.
-  @sender_email "jamesgood@dactyl.digital"
+  @sender_email "mailgun@notastical.com"
 
   @doc """
     This function is meant to be used within the sign up controller:
