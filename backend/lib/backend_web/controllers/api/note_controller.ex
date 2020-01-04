@@ -289,20 +289,20 @@ defmodule BackendWeb.NoteController do
     end
   end
 
-  def search_notes(conn, %{search_text: search_text, offset: offset}) do
+  def search_notes(conn, %{"search_text" => search_text, "offset" => offset}) do
     %{current_user: current_user} = conn.assigns
 
-    with {:ok, search_results} <-
+    with {:ok, result} <-
            Notebooks.search_note_content(%{
              requester_id: current_user.user_id,
              search_text: search_text,
-             offset: offset
+             offset: offset |> String.to_integer()
            }) do
       conn
       |> put_status(200)
       |> json(%{
         message: "Successfully searched notes!",
-        data: search_results
+        data: result
       })
     else
       _ ->

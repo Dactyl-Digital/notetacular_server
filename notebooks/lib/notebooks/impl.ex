@@ -620,6 +620,44 @@ defmodule Notebooks.Impl do
         }, success_fn, fail_fn)
   end
 
+
+  @doc """
+  solution arrived at thanks to this post from the elixir forum:
+  https://elixirforum.com/t/how-to-merge-list-pares-into-a-single-map/3468/2
+
+  input:
+  %Postgres.Result{
+    columns: ["note_id", "topic_id", "sub_category_id", "notebook_id", "title",
+      "content_text"],
+    command: :select,
+    connection_id: 12613,
+    messages: [],
+    num_rows: 1,
+    rows: [
+      [5, 3, 2, 2, "Best Time to Buy/Sell a Stock", "content_text string...."]
+    ]
+  }
+
+
+  output:
+  [
+    %{
+      content_text: "content_text string....",
+      note_id: 5,
+      notebook_id: 2,
+      sub_category_id: 2,
+      title: "Best Time to Buy/Sell a Stock",
+      topic_id: 3
+    }
+  ]
+  """
+  defp format_search_results(search_results) do
+    search_results.rows
+    |> Enum.map(fn row ->
+      for {column, row_value} <- Enum.zip(search_results.columns, row), into: %{}, do: { String.to_atom(column), row_value }
+    end)
+  end
+
   @doc """
   Notebooks.search_note_content("Fuck")
 
@@ -653,6 +691,22 @@ defmodule Notebooks.Impl do
       [5, 3, 2, 2, "Best Time to Buy/Sell a Stock", "content_text string...."]
     ]
     }}
+
+  Returned to the controller function to be sent back to the clientside:
+  %{
+      # As a result of calling format_search_results
+      search_results: [
+        %{
+          content_text: "content_text string....",
+          note_id: 5,
+          notebook_id: 2,
+          sub_category_id: 2,
+          title: "Best Time to Buy/Sell a Stock",
+          topic_id: 3
+        }
+      ]
+      num_rows: postgres_result.num_rows
+    }
   """
   def search_note_content(%{requester_id: requester_id, search_text: search_text, offset: offset}) do
     # SO Post also implemented it like so:
@@ -681,8 +735,7 @@ defmodule Notebooks.Impl do
     case query_result do
       {:ok, postgres_result} ->
         {:ok, %{
-          columns: postgres_result.columns,
-          rows: postgres_result.rows,
+          search_results: format_search_results(postgres_result),
           num_rows: postgres_result.num_rows
         }}
 
