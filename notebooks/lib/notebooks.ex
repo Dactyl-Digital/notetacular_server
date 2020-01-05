@@ -7,6 +7,7 @@ defmodule Notebooks do
   # Notebook Resource Actions
   # *************************
   defdelegate create_notebook(params), to: Notebooks.Impl
+  defdelegate retrieve_notebook_with_sub_categories(params), to: Notebooks.Impl
   defdelegate list_notebooks(params), to: Notebooks.Impl
   defdelegate list_shared_notebooks(params), to: Notebooks.Impl
   defdelegate update_notebook_title(params), to: Notebooks.Impl

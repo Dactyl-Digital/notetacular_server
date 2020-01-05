@@ -133,6 +133,83 @@ defmodule Notebooks.Impl do
     |> create_or_fail(handle_create_fn)
   end
 
+  @doc """
+  Had to set up this function to facilitate a user navigating directly to the sub categories page of a particular notebook...
+  Also, need to account for the listOffset here, as the entirety of some Sub Categories are being retrieved.
+
+  Example of a successful result:
+  {:ok,
+ %{
+   noteboook: %Dbstore.Notebook{
+     __meta__: #Ecto.Schema.Metadata<:loaded, "notebooks">,
+     id: 2,
+     inserted_at: ~N[2019-12-21 16:40:01],
+     owner_id: 2,
+     sub_categories: [2, 3],
+     title: "Data Structures And Algorithms",
+     updated_at: ~N[2019-12-21 16:40:01],
+     users: #Ecto.Association.NotLoaded<association :users is not loaded>
+   },
+   sub_categories: %{
+     sub_categories: [
+       %Dbstore.SubCategory{
+         __meta__: #Ecto.Schema.Metadata<:loaded, "sub_categories">,
+         id: 3,
+         inserted_at: ~N[2019-12-22 03:12:01],
+         notebook_id: 2,
+         notebooks: #Ecto.Association.NotLoaded<association :notebooks is not loaded>,
+         title: "Functional DS&Algs in Scala",
+         topics: [],
+         updated_at: ~N[2019-12-22 03:12:01]
+       },
+       %Dbstore.SubCategory{
+         __meta__: #Ecto.Schema.Metadata<:loaded, "sub_categories">,
+         id: 2,
+         inserted_at: ~N[2019-12-21 16:40:08],
+         notebook_id: 2,
+         notebooks: #Ecto.Association.NotLoaded<association :notebooks is not loaded>,
+         title: "Leetcode",
+         topics: [3],
+         updated_at: ~N[2019-12-21 16:40:08]
+       }
+     ]
+   }
+ }}
+  """
+  def retrieve_notebook_with_sub_categories(%{owner_id: owner_id, notebook_id: notebook_id, limit: limit, offset: offset}) do
+    sub_categories_query = from s in SubCategory, select: s.id, order_by: s.updated_at
+    notebook_query = from(n in Notebook,
+      preload: [sub_categories: ^sub_categories_query],
+      where: n.owner_id == ^owner_id and n.id == ^notebook_id,
+    )
+
+    with [%Notebook{sub_categories: sub_categories} = notebook] <- notebook_query |> Repo.all,
+          {:ok, sub_categories} <- retrieve_notebooks_associated_sub_categories(%{sub_categories: sub_categories, limit: limit, offset: offset})
+      do
+        {:ok, %{notebook: notebook, sub_categories: sub_categories}}
+      else
+      _ ->
+        {:error, "Oops... Something went wrong."}
+    end
+  end
+
+  defp retrieve_notebooks_associated_sub_categories(%{sub_categories: sub_categories, limit: limit, offset: offset}) do
+    # Email yourself this so you remember.
+    # %{sub_category_ids: sub_category_ids, list_offset: list_offset}
+    #   = Enum.reduce_while(sub_categories, %{sub_category_ids: [], list_offset: 0}, fn x, acc ->
+    #       if x !== sub_category_id,
+    #       do: {:cont, %{sub_category_ids: [x | acc.sub_category_ids], list_offset: acc.list_offset + 1}},
+    #       else: {:halt, %{sub_category_ids: [x | acc.sub_category_ids], list_offset: acc.list_offset + 1}}
+    #     end)
+    case list_sub_categories_query(%{sub_category_id_list: sub_categories, limit: limit, offset: offset}) do
+      [%SubCategory{} | _xs] = sub_categories ->
+        {:ok, sub_categories}
+
+      _ ->
+        {:error, "Oops... Something went wrong."}
+    end
+  end
+
   # TODO: Need to create a test that ensures a list of sub_category_ids is on
   #       the returned resource.
   @doc """
@@ -141,6 +218,8 @@ defmodule Notebooks.Impl do
   """
   def list_notebooks(%{owner_id: owner_id, limit: limit, offset: offset} = params) do
     sub_categories_query = from s in SubCategory, select: s.id, order_by: s.updated_at
+    # NOTE: This order_by: n.updated_at does indeed return older notebooks towards the bottom of the list.
+    # But is that the case for the sub_category_id_list that is returned? I think that's where I had the problem.
     from(n in Notebook,
       preload: [sub_categories: ^sub_categories_query],
       where: n.owner_id == ^owner_id,

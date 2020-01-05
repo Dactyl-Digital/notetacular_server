@@ -26,6 +26,38 @@ defmodule BackendWeb.NotebookController do
   end
 
   @doc """
+    A GET to list the sub_categories of a given notebook.
+
+    URL:
+    "/api/notebook/sub-categories"
+  """
+  def retrieve_notebook_with_sub_categories(conn, %{
+        "notebook_id" => notebook_id,
+        "limit" => limit,
+        "offset" => offset
+      }) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, data} <-
+           Notebooks.retrieve_notebook_with_sub_categories(%{
+             owner_id: current_user.user_id,
+             notebook_id: notebook_id,
+             limit: limit,
+             offset: offset
+           }) do
+      conn
+      |> put_status(200)
+      |> json(%{
+        message: "Successfully listed notebook's sub categories!",
+        data: data
+      })
+    else
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
+
+  @doc """
   A GET to list a user's own notebooks
 
   Example URL:

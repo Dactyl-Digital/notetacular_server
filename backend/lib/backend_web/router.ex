@@ -77,6 +77,7 @@ defmodule BackendWeb.Router do
     # Notebook Controllers
     post("/notebook", NotebookController, :create_notebook)
     get("/notebook", NotebookController, :list_notebooks)
+    get("/notebook/sub-categories", NotebookController, :retrieve_notebook_with_sub_categories)
     delete("/notebook/:id", NotebookController, :delete_notebook)
     delete("/notebook/:id", NoteController, :delete_notebook)
     options("/notebook", NotebookController, :options)
