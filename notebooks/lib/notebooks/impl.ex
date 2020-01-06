@@ -453,6 +453,71 @@ defmodule Notebooks.Impl do
     ) |> Repo.all
   end
 
+  @doc """
+  Had to set up this function to facilitate a user navigating directly to the topics page of a particular notebook...
+  Also, need to account for the listOffset here, as the entirety of some Topics are being retrieved.
+
+  Example of a successful result:
+  {:ok,
+  %{
+    sub_category: %Dbstore.SubCategory{
+      __meta__: #Ecto.Schema.Metadata<:loaded, "sub_categories">,
+      id: 2,
+      inserted_at: ~N[2019-12-21 16:40:08],
+      notebook_id: 2,
+      notebooks: #Ecto.Association.NotLoaded<association :notebooks is not loaded>,
+      title: "Leetcode",
+      topics: [3],
+      updated_at: ~N[2019-12-21 16:40:08]
+    },
+    topics: [
+      %Dbstore.Topic{
+        __meta__: #Ecto.Schema.Metadata<:loaded, "topics">,
+        id: 3,
+        inserted_at: ~N[2019-12-21 16:40:18],
+        notes: [5],
+        sub_categories: #Ecto.Association.NotLoaded<association :sub_categories is not loaded>,
+        sub_category_id: 2,
+        tags: [],
+        title: "Easy Problems",
+        updated_at: ~N[2019-12-21 16:40:18]
+      }
+    ]
+  }}
+  """
+  def retrieve_sub_category_with_topics(%{owner_id: owner_id, sub_category_id: sub_category_id, limit: limit, offset: offset}) do
+    topics_query = from t in Topic, select: t.id, order_by: t.updated_at
+    sub_category_query = from(s in SubCategory,
+      preload: [topics: ^topics_query],
+      # NOTE: Needs to be notebook.owner_id
+      # I could swap this out on the clientside so that
+      # it sends the parent notebookId of the subCategory
+      # and then rewrite the query to ensure it's truly authorized for the user...
+      # But I'll skip that for now as it isn't pertinent.
+      # s.owner_id == ^owner_id and
+      where: s.id == ^sub_category_id,
+    )
+
+    with [%SubCategory{topics: topics} = sub_category] <- sub_category_query |> Repo.all,
+          {:ok, topics} <- retrieve_sub_category_associated_topics(%{topics: topics, limit: limit, offset: offset})
+      do
+        {:ok, %{sub_category: sub_category, topics: topics}}
+      else
+      _ ->
+        {:error, "Oops... Something went wrong."}
+    end
+  end
+
+  defp retrieve_sub_category_associated_topics(%{topics: topics, limit: limit, offset: offset}) do
+    case list_topics_query(%{topic_id_list: topics, limit: limit, offset: offset}) do
+      [%Topic{} | _xs] = topics ->
+        {:ok, topics}
+
+      _ ->
+        {:error, "Oops... Something went wrong."}
+    end
+  end
+
   def update_sub_category_title(sub_category_id) do
     # TODO:
     # requester_id

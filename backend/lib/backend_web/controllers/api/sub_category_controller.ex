@@ -79,6 +79,32 @@ defmodule BackendWeb.SubCategoryController do
     end
   end
 
+  def retrieve_sub_category_with_topics(conn, %{
+        "sub_category_id" => sub_category_id,
+        "limit" => limit,
+        "offset" => offset
+      }) do
+    %{current_user: current_user} = conn.assigns
+
+    with {:ok, data} <-
+           Notebooks.retrieve_sub_category_with_topics(%{
+             owner_id: current_user.user_id,
+             sub_category_id: sub_category_id,
+             limit: limit,
+             offset: offset
+           }) do
+      conn
+      |> put_status(200)
+      |> json(%{
+        message: "Successfully listed sub_category's topics!",
+        data: data
+      })
+    else
+      _ ->
+        conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
+    end
+  end
+
   def delete_sub_category(
         conn,
         %{"id" => id} = params

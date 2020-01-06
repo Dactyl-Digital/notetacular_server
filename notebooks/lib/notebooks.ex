@@ -18,6 +18,7 @@ defmodule Notebooks do
   # SubCategory Resource Actions
   # ****************************
   defdelegate create_sub_category(params), to: Notebooks.Impl
+  defdelegate retrieve_sub_category_with_topics(params), to: Notebooks.Impl
   defdelegate list_sub_categories(params), to: Notebooks.Impl
   defdelegate update_sub_category_title(sub_category_id), to: Notebooks.Impl
   defdelegate delete_sub_category(sub_category_id), to: Notebooks.Impl

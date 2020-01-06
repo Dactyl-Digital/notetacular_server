@@ -86,6 +86,7 @@ defmodule BackendWeb.Router do
     # Sub Category Controllers
     post("/sub-category", SubCategoryController, :create_sub_category)
     get("/sub-category", SubCategoryController, :list_sub_categories)
+    get("/sub-category/topics", SubCategoryController, :retrieve_sub_category_with_topics)
     delete("/sub-category/:id", SubCategoryController, :delete_sub_category)
     options("/sub-category", SubCategoryController, :options)
     options("/sub-category/:id", SubCategoryController, :options)
