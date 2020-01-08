@@ -17,7 +17,7 @@ defmodule Dbstore.Helpers do
     errors =
       changeset
       |> Changeset.traverse_errors(fn {msg, opts} ->
-        # TODO: Check if :fields stays consistent as a way to check
+        # TODO: Ensure that :fields stays consistent as a way to check
         # that this opts data structure is representative of a unique_constraint.
         Keyword.has_key?(opts, :fields)
         |> format_error(msg, opts)

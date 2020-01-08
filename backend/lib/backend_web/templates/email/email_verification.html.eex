@@ -5,7 +5,8 @@
     <%# NOTE: THis is the old link before attempting to provide the front end url %>
     <%# "#{BackendWeb.Endpoint.url}#{BackendWeb.Router.Helpers.auth_path(BackendWeb.Endpoint, :verify_email, email_verification_token: @email_verification_token, email: @email)}" %>
     <br/>
-    <%# TODO: Dynamically change the "http://localhost:8000" based on whether in dev or prod %>
+    <%# TODO: Dynamically change the "http://localhost:8000" based on whether in dev or prod, but it's probably
+      # not super crucial considering an email isn't sent w/ the LocalAdapter... %>
     <%# <%= if Mix.env() === :prod do
         link "Verify your email!", to: "https://www.notastical.com/app#{BackendWeb.Router.Helpers.auth_path(BackendWeb.Endpoint, :verify_email, email_verification_token: @email_verification_token, email: @email)}"
       else

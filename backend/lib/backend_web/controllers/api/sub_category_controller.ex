@@ -11,21 +11,10 @@ defmodule BackendWeb.SubCategoryController do
   def create_sub_category(conn, %{"title" => title, "notebook_id" => notebook_id} = params) do
     %{current_user: current_user} = conn.assigns
 
-    # IO.inspect(
-    #   Notebooks.create_sub_category(%{
-    #     requester_id: current_user.user_id,
-    #     title: title,
-    #     # TODO: Ask about UUIDs and how to handle potential collisions.
-    #     notebook_id: notebook_id
-    #   })
-    # )
-
     with {:ok, %SubCategory{} = sub_category} <-
            Notebooks.create_sub_category(%{
              requester_id: current_user.user_id,
              title: title,
-             # TODO: Ask about UUIDs and how to handle potential collisions.
-             # |> String.to_integer()
              notebook_id: notebook_id |> String.to_integer()
            }) do
       conn
@@ -56,6 +45,10 @@ defmodule BackendWeb.SubCategoryController do
     # it ends up as the value of sub_categories, and
     # is attempted to be sent back as JSON... and
     # this error would crash the server process.
+    # NOTE:
+    # However.... I don't know how that state was reached,
+    # asif the session is invalid then the backend responds
+    # to the client immediately w/ a failure response.
     with sub_categories <-
            Notebooks.list_sub_categories(%{
              requester_id: current_user.user_id,

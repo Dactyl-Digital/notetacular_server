@@ -5,7 +5,8 @@ defmodule Dbstore.User do
 
   schema "users" do
     field(:username, :string)
-    # TODO: Update this field in the DB when user logs in...
+    # PRIORITY TODO: Update this field in the DB when user logs in...
+    # I think I haven't gotten around to handling this yet.
     field(:last_seen_active, :date)
     field(:account_active, :boolean)
 

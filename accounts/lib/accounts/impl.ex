@@ -6,11 +6,13 @@ defmodule Accounts.Impl do
   alias Ecto.Changeset
   alias Dbstore.{Repo, Helpers, User, Credential, Permissions}
 
-  @salty "somesaltSOMESALT"
   # Key for hashing the user's remember_token TODO: (This is duplicated in backend/temp/auth_plug.ex)
   # mix phx.gen.secret [length]
-  # TODO: keep this secret in prod
   # WARNING: This is duplicated in the backend project's auth_plug.ex file
+  # Application.get_env(:backend, :hash_key)
+  # TODO: keep @hash_key secret in prod
+  # Ensure that using the Application.get_env approach for the remember_token hash_key
+  # will work in prod.
   @hash_key "7b8lEvA2aWxGB1f2MhBjhz8YRf1p21fgTxn8Qf6KciM9IJCaJ9aIn4SNna0FybxZ"
   @remember_token_bytes 32
 
@@ -117,12 +119,9 @@ defmodule Accounts.Impl do
   #################################
 
   def create_user(%{email: email, username: username, password: password} = params) do
-    IO.puts("IN CREATE_USER")
-
     [[:username, username], [:email, email], [:password, password]]
     |> Enum.map(fn [key, value] -> validate_user_input(key, value) end)
     |> Enum.filter(fn result -> result !== true end)
-    |> IO.inspect()
     |> create_user_or_fail(params)
   end
 
@@ -131,8 +130,6 @@ defmodule Accounts.Impl do
   Then all validations were performed successfully.
   """
   defp create_user_or_fail([], %{email: email, username: username, password: password}) do
-    IO.puts("IN create_user_or_fail")
-
     %User{}
     |> User.changeset(%{
       username: username,
@@ -145,27 +142,14 @@ defmodule Accounts.Impl do
       }
     })
     |> Repo.insert()
-    |> IO.inspect()
     |> Helpers.handle_creation_result()
   end
 
   defp create_user_or_fail(errors, _), do: {:error, errors}
 
   def login_user(%{username: username, password: password}) do
-    # NOTE: The commented code below is how I would've thought the checkin gof the
-    # user inputted password against the stored hashed_pw would need to be done....
-    # How does Argon2.check_password know what salt to use..... Need to look deeper
-    # into this.
-    # TODO: Look into how to safely handle storing the password hashing salt on users
-    # %User{credentials: %Credential{
-    #     password_hash: password_hash
-    #   }
-    # }
-    # %User{account_active: account_active, credentials: credentials} =
     retrieve_user_with_credentials_by_username(username)
     |> check_password_if_account_active(password)
-
-    # new_pw_hash = hash_password(password, @salty)
   end
 
   def check_password_if_account_active(nil, _),
@@ -200,7 +184,7 @@ defmodule Accounts.Impl do
   def retrieve_users_credentials_by_email(email), do: Repo.get_by(Credential, email: email)
 
   defp retrieve_user_with_credentials_by_username(username),
-    do: Repo.get_by(User, username: username) |> IO.inspect() |> Repo.preload([:credentials])
+    do: Repo.get_by(User, username: username) |> Repo.preload([:credentials])
 
   def update_user_token(:hashed_remember_token, id, token) do
     %User{id: id}
@@ -226,9 +210,6 @@ defmodule Accounts.Impl do
   end
 
   def remove_hashed_remember_token(user_id) do
-    IO.puts("removing hashed remember token")
-    IO.inspect(user_id)
-    # credential = Repo.get_by(Dbstore.Credential, user_id: 1)
     update_query =
       from(c in Credential,
         where: c.user_id == ^user_id,

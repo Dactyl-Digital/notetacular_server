@@ -15,7 +15,6 @@ defmodule BackendWeb.TopicController do
            Notebooks.create_topic(%{
              requester_id: current_user.user_id,
              title: title,
-             # TODO: Ask about UUIDs and how to handle potential collisions.
              sub_category_id: sub_category_id |> String.to_integer()
            }) do
       conn
@@ -103,7 +102,6 @@ defmodule BackendWeb.TopicController do
       })
     else
       {:error, msg} ->
-        # TODO: Set to Bad Request status code
         conn |> put_status(401) |> json(%{message: msg})
 
       _ ->
@@ -128,7 +126,6 @@ defmodule BackendWeb.TopicController do
       })
     else
       {:error, "Tag is not in the list of tags."} ->
-        # TODO: Set to Bad Request status code
         conn |> put_status(401) |> json(%{message: "Tag is not in the list of tags."})
 
       _ ->

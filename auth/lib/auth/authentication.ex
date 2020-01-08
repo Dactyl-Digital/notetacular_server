@@ -1,14 +1,11 @@
 defmodule Auth.Authentication do
   use Timex
 
-  @expiry_time_days 1
+  @expiry_time_days 2
 
   @failed_password_match_message "Username or password is incorrect."
 
-  def hash_password(password, salt) do
-    # TODO: look into the t_cost and m_cost options.
-    Argon2.Base.hash_password(password, salt, t_cost: 4, m_cost: 18)
-  end
+  def hash_password(password), do: Argon2.hash_pwd_salt(password)
 
   def check_password(nil, _password), do: {:error, @failed_password_match_message}
 
@@ -17,12 +14,12 @@ defmodule Auth.Authentication do
     In the case of a successful password match in order to facilitate piping this functions
     output into accounts/accounts/impl.ex's login function.
   """
-  def check_password(user_credentials, password) do
-    case user_credentials |> Argon2.check_pass(password) do
-      {:ok, _} ->
+  def check_password(%{password_hash: password_hash} = user_credentials, user_input_password) do
+    case Argon2.verify_pass(user_input_password, password_hash) do
+      true ->
         :ok
 
-      {:error, "invalid password"} ->
+      false ->
         {:error, @failed_password_match_message}
     end
   end
@@ -33,36 +30,9 @@ defmodule Auth.Authentication do
     |> generate_session_data(credential_id)
   end
 
-  # defp generate_remember_token(bytes), do: :crypto.strong_rand_bytes(bytes) |> Base.encode64()
-
-  # @doc """
-  #   remember_token is stored on the cookie.
-
-  #   hashed_remember_token is stored in the database.
-
-  #   When a subsequent request reaches the web server, then the remember_token
-  #   from the cookie will be hashed, and the resulting hash will be compared against
-  #   the hashed_remember_token in the database.
-
-  #   If the hash matches, then we know that the contents of the cookie haven't been
-  #   tampered with.
-  # """
-  # def hash_remember_token(remember_token) do
-  #   case :crypto.hmac(:sha384, @hash_key, remember_token) |> Base.encode64() do
-  #     hashed_remember_token ->
-  #       {:ok, {remember_token, hashed_remember_token}}
-
-  #     # TODO: Got an error saying this line will never match due to line 39.
-  #     #       Need to see what the result of :crypto.hmac and Base.encode64 can possibly
-  #     #       be in the event of an error result.
-  #     # _ ->
-  #     #   {:error, "Something went wrong hashing the remember_token"}
-  #   end
-  # end
-
-  # TODO: Create UUID for credential? Would this be worth it.
   # NOTE: I'm opting for credential_id/uuid in an attempt to not put
   #       the user's email on the session.
+  # Create UUID for credential? Would this be worth it.
   defp generate_session_data({:ok, {remember_token, hashed_remember_token}}, credential_id) do
     session_data =
       %{credential_id: credential_id, remember_token: remember_token}
@@ -77,6 +47,7 @@ defmodule Auth.Authentication do
   defp generate_expiry_time(session_data) do
     expiry =
       Timex.now()
+      # TODO: May also use Application.get_env to set @expiry_time_days as well.
       |> Timex.shift(days: @expiry_time_days, hours: 12)
       |> DateTime.to_unix()
 

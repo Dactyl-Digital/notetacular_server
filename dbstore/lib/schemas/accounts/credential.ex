@@ -2,11 +2,6 @@ defmodule Dbstore.Credential do
   use Ecto.Schema
   import Ecto.Changeset
 
-  # TODO: Use mix phx.gen.secret..
-  # Actually... this needs to be stored in the DB.
-  # Read the post on handling Password salts securely and handle this properly later.
-  @salty "somesaltSOMESALT"
-
   schema "credentials" do
     field(:email, :string)
     field(:password, :string, virtual: true)
@@ -49,7 +44,7 @@ defmodule Dbstore.Credential do
       changeset,
       :password_hash,
       # TODO: Could utilize Mix.ENV to determine whether in dev, test, prod to determine hash rounds
-      Auth.hash_password(password, @salty)
+      Auth.hash_password(password)
     )
   end
 

@@ -37,6 +37,9 @@ defmodule BackendWeb.Endpoint do
   plug(Plug.Session,
     store: :cookie,
     key: "_backend_key",
+    # TODO:
+    # Should I have an environment variable for this?
+    # Benefits to adding an :encryption_salt?
     signing_salt: "g1sz1a4N"
   )
 

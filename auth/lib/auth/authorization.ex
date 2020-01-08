@@ -32,7 +32,6 @@ defmodule Auth.Authorization do
          %{credential_id: credential_id, remember_token: remember_token},
          fetch_credential_fn
        ) do
-    # TODO: Remove this comment , but implement this function in the Accounts context: case Accounts.retrieve_credentials_by_id(id) do
     case fetch_credential_fn.(credential_id) do
       credential ->
         {:ok, {credential, remember_token}}

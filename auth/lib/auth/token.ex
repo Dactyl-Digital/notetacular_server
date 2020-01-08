@@ -5,6 +5,7 @@ defmodule Auth.Token do
   # TODO: Look into ideal bytes to use...
   @bytes 255
   # TODO: FIGURE OUT THE SITUATION WITH THIS AS AN ENVIRONMENT VARIABLE?!?
+  # Application.get_env possible solution
   @hash_key "7b8lEvA2aWxGB1f2MhBjhz8YRf1p21fgTxn8Qf6KciM9IJCaJ9aIn4SNna0FybxZ"
 
   @doc """
@@ -59,6 +60,8 @@ defmodule Auth.Token do
     stored_hashed_email_verification_token === freshly_hashed_token
   end
 
+  # TODO:
+  # Replace @hash_key w/ Application.get_env(:backend, "HASH_KEY")
   defp hmac_remember_token(token),
     do: :crypto.mac(:hmac, :sha384, @hash_key, token) |> Base.encode64()
 

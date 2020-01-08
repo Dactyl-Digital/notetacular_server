@@ -27,7 +27,8 @@ defmodule Dbstore.Note do
     |> cast(params, [:content_markdown, :content_text, :content_text_vector])
     |> validate_required([:content_markdown, :content_text, :content_text_vector])
 
-    # TODO: Will need to write a customer validator for the content_markdown?
+    # PRIORITY TODO: Will need to write a custom validator for the content_markdown?
+    # Also, what's my regex strategy for the content_text user input?
     # |> validate_length(:content_markdown, min: 20)
     # |> validate_length(:content_text, min: 20)
   end

@@ -9,6 +9,8 @@ defmodule Dbstore.NoteTimer do
     field(:description, :string)
     # TODO: Possibly remove this... I believe I added it so that the timers can be rearranged.
     # but changing the order will be too cumbersome when a timer is deleted. So it's no big deal.
+    # This rearrangement of resources in the UI is something that I intended to implement
+    # for Notebooks, SubCats, Topics, and Notes as well, so there should be no avoiding it.
     field(:timer_count, :integer)
 
     # TODO:

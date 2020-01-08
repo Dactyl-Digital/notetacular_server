@@ -20,16 +20,10 @@ defmodule BackendWeb.Router do
         "http://localhost:8000"
       end
 
-    IO.puts("the origin is set as:")
-    IO.inspect(origin)
-    # TODO: Was testing w/ postman to faciliate
-    # checking the format the client will receive.
-    # Get an error when attempting to post over HTTPS...
-    # Look into what that's about.
     plug(CORSPlug, origin: origin)
     plug(:accepts, ["json"])
     plug(:fetch_session)
-    # plug(:protect_from_forgery)
+    plug(:protect_from_forgery)
     plug(:put_secure_browser_headers)
   end
 
@@ -64,6 +58,9 @@ defmodule BackendWeb.Router do
     # 08:33:20.420 [info] OPTIONS /api/signup
     # 08:33:20.421 [info] Sent 204 in 922µs
     # I never sent a 204 response in the controller.... so what gives?
+    # ANSWER: It was a CORS issue still, wasn't configured properly when running in
+    # prod when the error was encounted. Adding this -> ["https://notastical.com", "https://www.notastical.com"]
+    # as the cors origin fixed it.
     post("/signup", AuthController, :signup)
     # NOTE: using this *options* is necessary otherwise CORS issues
     #       regarding Allow-Access-Control-Headers not being set by the

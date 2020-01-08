@@ -26,7 +26,7 @@ defmodule Notebooks.Impl do
   @title_length_max_error_msg "must be less than 40 characters."
   @tag_length_min_error_msg "must be greater than 3 characters."
   @tag_length_max_error_msg "must be less than 20 characters."
-  # TODO (After the core feature set has completely
+  #  (After the core feature set has completely
   # been implemented, then I can add the notebook_shareuser
   # functionality.
   # Otherwise, it's not an ideal time to implement this feature
@@ -118,7 +118,6 @@ defmodule Notebooks.Impl do
   # *************************
   # Notebook Resource Actions
   # *************************
-  # TODO: Implement regex check on title
   def create_notebook(%{owner_id: owner_id, title: title} = params) do
     handle_create_fn = (fn ->
       %Notebook{}
@@ -286,10 +285,10 @@ defmodule Notebooks.Impl do
   end
 
   def update_notebook_title(%{requester_id: requester_id, notebook_id: notebook_id} = params) do
+    ""
     # TODO
     # notebook_id
     # |> retrieve_notebook_by_id
-    # TODO: Handle update |>
 
     # defp check_notebook_access_authorization(%{
     #   requester_id: requester_id,
@@ -356,14 +355,12 @@ defmodule Notebooks.Impl do
         |> Notebook.changeset(%{owner_id: user_id})
         |> Repo.insert()
         Repo.delete(notebook_shareuser)
-        # TODO: see if this is ideal to return
         {:ok, "You've successfully deleted the notebook."}
 
       # This notebook hasn't been shared w/ any other users
       # so we just delete it.
       nil ->
         Repo.delete(notebook)
-        # TODO: see if this is ideal to return
         {:ok, "You've successfully deleted the notebook."}
     end
   end
@@ -950,14 +947,14 @@ defmodule Notebooks.Impl do
   Success case:
   {:ok, struct}
 
-  TODO: Need to see how I'll handle the error case when the
+  PRIORITY TODO: Need to see how I'll handle the error case when the
   returned changeset is retrieved in the controller... as of right
   now it'll blow up.
   Error case:
   {:error, changeset} // W/ validation/contraint errors.
   """
   def add_tags(:topic, %{topic_id: topic_id, tags: tags} = params) do
-    # TODO: Check to see if searching by tags for Topics from the UI will even
+    # PRIORITY TODO (DO THIS FIRST): Check to see if searching by tags for Topics from the UI will even
     # be feasible...
     # ALSO TODO: Forgot that I was also checking for length at least >= 3 on the client
     # side as well... So the client should never really receive this error response..
@@ -1071,7 +1068,6 @@ defmodule Notebooks.Impl do
 
   def list_note_timers(_params), do: {:error, "note_timer_id_list must be greater than 0"}
 
-  # TODO: Make necessary changes to list note timers
   defp list_note_timers_query(%{note_timer_id_list: note_timer_id_list, limit: limit, offset: offset} = params) do
     from(
       nt in NoteTimer,
@@ -1230,7 +1226,6 @@ defmodule Notebooks.Impl do
         })
 
       nil ->
-        # TODO: Most ideal error to return?
         # This is the case where the Notebook doesn't exist.
         {:error, "UNAUTHORIZED_REQUEST"}
     end

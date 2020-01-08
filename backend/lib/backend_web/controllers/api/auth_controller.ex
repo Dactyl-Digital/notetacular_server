@@ -20,7 +20,7 @@ defmodule BackendWeb.AuthController do
         conn |> put_status(401) |> json(%{message: "UNAUTHORIZED_REQUEST"})
 
       _ ->
-        # TODO: Implement a resend email verification link email just incase all sorts
+        # PRIORITY TODO: Implement a resend email verification link email just incase all sorts
         #       of fuckery happened that would prevent a user from completing the signup process?
         conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
     end
@@ -45,10 +45,6 @@ defmodule BackendWeb.AuthController do
     end
   end
 
-  # NOW TODO:
-  # Start setting up the controllers for creating and reading Notebook resources
-  # First order of business will be getting the plug which pulls off the session cookie
-  # and retrieves the user's credential resource to grab the user_id
   def login(conn, %{
         "username" => username,
         "password" => password

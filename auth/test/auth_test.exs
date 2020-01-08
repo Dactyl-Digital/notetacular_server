@@ -4,9 +4,7 @@ defmodule AuthTest do
   doctest Auth
 
   defp hash_password(context) do
-    # TODO: Read that blog post (search "web security" in your email) which discusses
-    #       salting the password hash and handling that aspect properly.
-    {:ok, Map.put(context, :password_hash, Auth.hash_password("password", "somesaltSOMESALT"))}
+    {:ok, Map.put(context, :password_hash, Auth.hash_password("password"))}
   end
 
   defp setup_user(context) do

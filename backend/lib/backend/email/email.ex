@@ -3,7 +3,6 @@ defmodule Backend.Email do
   import Bamboo.Email
   alias Dbstore.{User, Credential}
 
-  # TODO: Use Official Notastical email.
   @sender_email "mailgun@notastical.com"
 
   @doc """

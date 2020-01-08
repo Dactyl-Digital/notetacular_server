@@ -16,14 +16,12 @@ defmodule BackendWeb.NoteController do
              requester_id: current_user.user_id,
              title: title,
              order: order,
-             # TODO: Ask about UUIDs and how to handle potential collisions.
+             # SECONDARY TODO: Ask about UUIDs and how to handle potential collisions.
+             # May just be rolling w/ vanilla ids, as uuids seems to be a hassle right now..
              topic_id: topic_id
            }) do
       conn
       |> put_status(201)
-      # TODO: Suppose I should just be returning the resource's id for
-      # Notebook, SubCategory, and Topic resources as well... to facilitate
-      # the update controller actions.
       |> json(%{message: "Successfully created note!", data: note})
     else
       {:error, errors} ->
@@ -139,7 +137,6 @@ defmodule BackendWeb.NoteController do
       })
     else
       {:error, msg} ->
-        # TODO: Set to Bad Request status code
         conn |> put_status(401) |> json(%{message: msg})
 
       _ ->
@@ -164,7 +161,6 @@ defmodule BackendWeb.NoteController do
       })
     else
       {:error, "Tag is not in the list of tags."} ->
-        # TODO: Set to Bad Request status code
         conn |> put_status(401) |> json(%{message: "Tag is not in the list of tags."})
 
       _ ->
