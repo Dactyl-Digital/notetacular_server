@@ -23,7 +23,10 @@ defmodule BackendWeb.Router do
     plug(CORSPlug, origin: origin)
     plug(:accepts, ["json"])
     plug(:fetch_session)
-    plug(:protect_from_forgery)
+    # PROIRITY TODO:
+    # Need to set up client to fetch
+    # csrf token.
+    # plug(:protect_from_forgery)
     plug(:put_secure_browser_headers)
   end
 

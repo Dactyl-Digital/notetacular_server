@@ -885,6 +885,53 @@ defmodule Notebooks.Impl do
     end
   end
 
+  def search_note_tags(%{requester_id: requester_id, search_tags: search_tags, offset: offset}) do
+    # SELECT * FROM notes as n WHERE n.tags::text LIKE '%dafyq%';
+    # This does indeed return a result for a note which only contains a single tag.
+
+    # However the above approach values short, as it will only find the single search term within the array which
+    # was casted to be a string of text.
+
+    # This is a better approach:
+    # SELECT * FROM notes as n WHERE n.tags::text LIKE any(array['%pan%', '%cheese%']);
+    # search_tags = search_tags |> Enum.reduce(fn tag -> "%#{tag}%" end)
+    # |> IO.inspect
+
+
+    # NOTE: The PostgreSQL Function string_to_array was the key to
+    # formatting the search_tags in such a way that would make the query work.
+    # Must generate search_tags in the format of:
+    # search_tags = "%pan%, "%noop%"
+
+    # THIS WORKS:
+    tags = search_tags |> Enum.with_index |> Enum.reduce("", fn {tag, i}, acc -> if (i === length(search_tags) - 1), do: acc <> "%#{tag}%"  , else: "%#{tag}%, " <> acc end)
+    query_result = Ecto.Adapters.SQL.query(Dbstore.Repo, "SELECT notes.id, notes.title as note_id FROM notes WHERE notes.tags::text LIKE any(array[string_to_array($1, ', ')])", [search_tags])
+
+    # THIS DOESN'T (I think at best... what I can do is just have two separate endpoints
+    # This only being solely responsible for searching for notes tagged as such... and just
+    # merge the results on the client side.)
+    # Works because this is a future TODO to add the ability for the client to search by tags anyway.
+    # query_result = Ecto.Adapters.SQL.query(
+    #   Dbstore.Repo, "SELECT notes.id as note_id, notes.topic_id, sub_categories.id as sub_category_id,
+    #   notebooks.id as notebook_id, notes.title, notes.content_text FROM notebooks, sub_categories,
+    #   topics, notes WHERE notebooks.owner_id = $1 and sub_categories.notebook_id = notebooks.id and
+    #   topics.sub_category_id = sub_categories.id and notes.topic_id = topics.id
+    #   and notes.content_text@@ plainto_tsquery($3)
+    #   and notes.tags::text LIKE any(array[string_to_array($2, ', ')])
+    #   LIMIT 10 OFFSET $4", [requester_id, tags, search_text, offset]
+    # ) |> IO.inspect
+
+    #   {:ok, postgres_result} ->
+    #     {:ok, %{
+    #       search_results: format_search_results(postgres_result),
+    #       num_rows: postgres_result.num_rows
+    #     }}
+
+    #     _ ->
+    #       {:err, "Oops... Something went wrong."}
+    # end
+  end
+
   @doc """
     NOTE: On the client side... The user will have a button
     which will enable a mass update, instead of updating
