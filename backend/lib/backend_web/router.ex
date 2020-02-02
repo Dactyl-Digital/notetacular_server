@@ -10,7 +10,7 @@ defmodule BackendWeb.Router do
   end
 
   pipeline :api do
-    origin =
+    client_origin =
       if Mix.env() === :prod do
         # NOTE: For the CORS error that was occuring in prod/
         # Adding this array fixed it.... But which one accurately
@@ -20,7 +20,7 @@ defmodule BackendWeb.Router do
         "http://localhost:8000"
       end
 
-    plug(CORSPlug, origin: origin)
+    plug(CORSPlug, origin: client_origin)
     plug(:accepts, ["json"])
     plug(:fetch_session)
     # PROIRITY TODO:
@@ -31,7 +31,17 @@ defmodule BackendWeb.Router do
   end
 
   pipeline :admin do
-    plug(CORSPlug, origin: "http://localhost:8000")
+    admin_origin =
+      if Mix.env() === :prod do
+        # NOTE: For the CORS error that was occuring in prod/
+        # Adding this array fixed it.... But which one accurately
+        # reflects the origin which my client sets in the header?
+        "https://admin.notastical.com"
+      else
+        "http://localhost:9000"
+      end
+
+    plug(CORSPlug, origin: admin_origin)
     plug(:accepts, ["json"])
     plug(:fetch_session)
     plug(:protect_from_forgery)

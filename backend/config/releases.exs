@@ -11,7 +11,12 @@ mailgun_key = System.fetch_env!("MAILGUN_KEY")
 mailgun_domain = System.fetch_env!("MAILGUN_DOMAIN")
 
 config :backend, BackendWeb.Endpoint,
-  http: [:inet6, port: String.to_integer(app_port)],
+  # port: String.to_integer(app_port)]
+  http: [:inet6],
+  url: [
+    host: app_hostname,
+    port: String.to_integer(app_port)
+  ],
   secret_key_base: secret_key_base
 
 config :backend,
@@ -56,10 +61,14 @@ config :backend, Backend.Mailer,
   domain: mailgun_domain,
   base_uri: "https://api.mailgun.net/v3"
 
-# Configure your database
-# config :demo, Demo.Repo,
-#   username: db_user,
-#   password: db_password,
-#   database: "demo_prod",
-#   hostname: db_host,
-#   pool_size: 10
+# Do not print debug messages in production
+# NOTE: Jose Valim mentions in this issue that it is okay to leave this on in prod...
+# What does it do?
+# https://github.com/elixir-ecto/postgrex/issues/446#issuecomment-472029316
+config :logger, handle_sasl_reports: true
+
+# NOTE: Copied this over from the dev.to elixir/docker deployment blog post
+#       Starting the mix release wouldn't have the app listening on the port
+#       w/out this line.
+# Which server to start per endpoint:
+config :backend, BackendWeb.Endpoint, server: true

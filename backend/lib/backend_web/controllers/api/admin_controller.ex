@@ -5,6 +5,7 @@ defmodule BackendWeb.AdminController do
   plug(:authorize_user)
 
   # PRIORITY TODO:
+  # Wellll.... These can be implemented at least 31 days after I launch this.
   # 1. Admin with TopLevel privileges should be able to manually override a user's subscribed_until date
   #    by toggling a flag of subscription_required (add the subscription_required field to the DB) from true to false.
   # And that's really all I care about for now.... YEAH!

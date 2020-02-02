@@ -5,7 +5,7 @@ defmodule Dbstore.User do
 
   schema "users" do
     field(:username, :string)
-    # PRIORITY TODO: Update this field in the DB when user logs in...
+    # FUTURE TODO: Update this field in the DB when user logs in...
     # I think I haven't gotten around to handling this yet.
     field(:last_seen_active, :date)
     field(:account_active, :boolean)
@@ -26,6 +26,15 @@ defmodule Dbstore.User do
     |> validate_length(:username, min: 3, max: 20)
     |> unique_constraint(:username)
     |> unsafe_validate_unique([:username], Dbstore.Repo, message: "That username is already taken")
+  end
+
+  def admin_changeset(user, params \\ %{}) do
+    user
+    |> cast(params, [:username, :account_active])
+    |> cast_assoc(:credentials, with: &Credential.changeset/2)
+    |> validate_required([:username, :account_active, :credentials])
+    |> validate_length(:username, min: 3, max: 20)
+    |> unique_constraint(:username)
   end
 
   def activate_account_changeset(user, params \\ %{}) do

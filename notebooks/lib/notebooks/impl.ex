@@ -340,28 +340,32 @@ defmodule Notebooks.Impl do
   defp retrieve_notebook_by_id(id), do: Repo.get(Notebook, id)
 
   defp delete_or_transfer_ownership(notebook) do
+    # TODO: Will need to test that this works... whenever I finish the shareuser feature.
     query =
       from(ns in "notebook_shareusers",
         where: ns.notebook_id == ^notebook.id,
+        join: n in "users",
+        on: n.id == ns.user_id,
         order_by: [desc: ns.inserted_at],
         limit: 1,
+        select: n.id
       )
 
 
     case Repo.all(query) do
-      [%NotebookShareuser{user_id: user_id}] = notebook_shareuser ->
+      [%{user_id: user_id}] = notebook_shareuser ->
         # Update the owner to the first created notebook_shareuser
         notebook
         |> Notebook.changeset(%{owner_id: user_id})
         |> Repo.insert()
         Repo.delete(notebook_shareuser)
-        {:ok, "You've successfully deleted the notebook."}
+        {:ok, notebook}
 
       # This notebook hasn't been shared w/ any other users
       # so we just delete it.
-      nil ->
+      [] ->
         Repo.delete(notebook)
-        {:ok, "You've successfully deleted the notebook."}
+        {:ok, notebook}
     end
   end
 
@@ -1001,10 +1005,8 @@ defmodule Notebooks.Impl do
   {:error, changeset} // W/ validation/contraint errors.
   """
   def add_tags(:topic, %{topic_id: topic_id, tags: tags} = params) do
-    # PRIORITY TODO (DO THIS FIRST): Check to see if searching by tags for Topics from the UI will even
-    # be feasible...
     # ALSO TODO: Forgot that I was also checking for length at least >= 3 on the client
-    # side as well... So the client should never really receive this error response..
+    # side as well... So the client should never really receive this error response (from the server at least)...
     # but still test this behavior.
     handle_create_fn = (fn ->
       topic = Repo.get(Topic, topic_id)
@@ -1017,7 +1019,6 @@ defmodule Notebooks.Impl do
     |> Enum.map(fn ({tag, idx}) -> ["Tag", tag, idx] end)
     |> Enum.map(fn [key, value, position] -> validate_user_input(key, value, position) end)
     |> Enum.filter(fn result -> result !== true end)
-    |> IO.inspect
     |> create_or_fail(handle_create_fn)
   end
 
@@ -1034,7 +1035,6 @@ defmodule Notebooks.Impl do
     |> Enum.map(fn ({tag, idx}) -> ["Tag", tag, idx] end)
     |> Enum.map(fn [key, value, position] -> validate_user_input(key, value, position) end)
     |> Enum.filter(fn result -> result !== true end)
-    |> IO.inspect()
     |> create_or_fail(handle_create_fn)
   end
 

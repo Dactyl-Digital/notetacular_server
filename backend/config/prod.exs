@@ -1,6 +1,11 @@
 use Mix.Config
 
+# I think this prod file and the releases file will be
+# ran on release start in prod deploy... but not sure.
+# ah yes... This does get executed at step 20/29 during the docker
+# build process.
 IO.puts("INSIDE ./backend PROD CONFIG!!!")
+
 # For production, we often load configuration from external
 # sources, such as your system environment. For this reason,
 # you won't find the :http configuration below, but set inside
@@ -23,14 +28,21 @@ config :backend, BackendWeb.Endpoint,
 
 config :backend, :ecto_repos, [Dbstore.Repo]
 
-config :dbstore, Dbstore.Repo,
-  adapter: Ecto.Adapters.Postgres,
-  database: "notastical_test",
-  username: "jamesgood",
-  password: "postgres",
-  hostname: "localhost",
-  pool_size: 12
+config :backend, Backend.Mailer,
+  adapter: Bamboo.MailgunAdapter,
+  api_key: Application.get_env(:backend, :mailgun_key),
+  domain: Application.get_env(:backend, :mailgun_domain),
+  base_uri: "https://api.mailgun.net/v3"
 
+# config :dbstore, Dbstore.Repo,
+#   adapter: Ecto.Adapters.Postgres,
+#   database: "notastical_test",
+#   username: "jamesgood",
+#   password: "postgres",
+#   hostname: "localhost",
+#   pool_size: 12
+
+# Config for DB and Email read from releases.exs instead...
 # config :dbstore, Dbstore.Repo,
 #   adapter: Ecto.Adapters.Postgres,
 #   database: System.get_env("RDS_DB_NAME"),

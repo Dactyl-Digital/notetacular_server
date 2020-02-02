@@ -203,6 +203,7 @@ defmodule BackendWeb.NoteController do
       }) do
     %{current_user: current_user} = conn.assigns
 
+    # PRIORITY TODO.... You need to have a pattern match on here otherwise else will never be reached/
     with note_timers <-
            Notebooks.list_note_timers(%{
              requester_id: current_user.user_id,

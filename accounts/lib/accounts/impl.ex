@@ -158,6 +158,9 @@ defmodule Accounts.Impl do
   def check_password_if_account_active(%{account_active: false}, _),
     do: {:error, "You must verify your email before you may login."}
 
+  # NOTE:
+  # Thought I was checking a user's membership somewhere. Guess that wasn't the case.
+  # Haven't implemented it yet. But a possible FUTURE TODO.
   def check_password_if_account_active(
         %{account_active: true, credentials: credentials},
         password

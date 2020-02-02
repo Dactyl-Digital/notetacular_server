@@ -20,8 +20,6 @@ config :backend, BackendWeb.Endpoint,
     ]
   ]
 
-IO.puts("Inside ./backend dev config")
-
 config :backend, :ecto_repos, [Dbstore.Repo]
 
 config :dbstore, Dbstore.Repo,

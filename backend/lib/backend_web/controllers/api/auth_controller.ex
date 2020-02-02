@@ -20,8 +20,9 @@ defmodule BackendWeb.AuthController do
         conn |> put_status(401) |> json(%{message: "UNAUTHORIZED_REQUEST"})
 
       _ ->
-        # PRIORITY TODO: Implement a resend email verification link email just incase all sorts
-        #       of fuckery happened that would prevent a user from completing the signup process?
+        # FUTURE TODO: Implement a resend email verification link (controller
+        # and corresponding clientside button action) email just incase all sorts
+        # of fuckery happened that would prevent a user from completing the signup process?
         conn |> put_status(500) |> json(%{message: "Oops... Something went wrong."})
     end
   end
